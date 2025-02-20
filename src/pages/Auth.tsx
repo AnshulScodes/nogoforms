@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,11 +19,49 @@ export default function Auth() {
     setLoading(true);
 
     try {
-      const { error } = isSignUp
+      const { data, error } = isSignUp
         ? await supabase.auth.signUp({ email, password })
         : await supabase.auth.signInWithPassword({ email, password });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Auth error details:", {
+          code: error.status,
+          name: error.name,
+          message: error.message,
+          details: error,
+        });
+        
+        toast({
+          variant: "destructive",
+          title: `Error: ${error.name || 'Authentication Failed'}`,
+          description: (
+            <div className="mt-1">
+              <p>{error.message}</p>
+              <p className="text-xs mt-2 text-gray-500">
+                Status code: {error.status || 'unknown'}
+              </p>
+              {error.status === 422 && (
+                <p className="text-xs mt-1 text-gray-500">
+                  This usually means the email/password format is invalid. 
+                  Ensure your password is at least 6 characters long.
+                </p>
+              )}
+              {error.status === 400 && (
+                <p className="text-xs mt-1 text-gray-500">
+                  This usually means invalid credentials or the email is not verified.
+                </p>
+              )}
+            </div>
+          ),
+        });
+        throw error;
+      }
+
+      // Log successful response for debugging
+      console.log("Auth response:", {
+        user: data?.user,
+        session: data?.session,
+      });
 
       toast({
         title: isSignUp ? "Account created!" : "Welcome back!",
@@ -35,11 +72,8 @@ export default function Auth() {
 
       if (!isSignUp) navigate("/builder");
     } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message,
-      });
+      // Log any unexpected errors
+      console.error("Unexpected auth error:", error);
     } finally {
       setLoading(false);
     }
