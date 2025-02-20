@@ -2,10 +2,10 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Form } from "@/types/forms";
 
-export async function createForm(form: Partial<Form>) {
+export async function createForm(form: { title: string } & Partial<Omit<Form, 'id' | 'title'>>) {
   const { data, error } = await supabase
     .from("forms")
-    .insert([form])
+    .insert(form)
     .select()
     .single();
 
@@ -13,7 +13,7 @@ export async function createForm(form: Partial<Form>) {
   return data;
 }
 
-export async function updateForm(id: string, updates: Partial<Form>) {
+export async function updateForm(id: string, updates: Partial<Omit<Form, 'id'>>) {
   const { data, error } = await supabase
     .from("forms")
     .update(updates)
@@ -52,24 +52,20 @@ export async function deleteForm(id: string) {
 }
 
 export async function submitFormResponse(formId: string, data: any) {
-  const { error } = await supabase.from("form_submissions").insert([
-    {
-      form_id: formId,
-      data,
-    },
-  ]);
+  const { error } = await supabase.from("form_submissions").insert({
+    form_id: formId,
+    data,
+  });
 
   if (error) throw error;
 }
 
 export async function trackFormEvent(formId: string, eventType: string, eventData: any = {}) {
-  const { error } = await supabase.from("form_analytics").insert([
-    {
-      form_id: formId,
-      event_type: eventType,
-      event_data: eventData,
-    },
-  ]);
+  const { error } = await supabase.from("form_analytics").insert({
+    form_id: formId,
+    event_type: eventType,
+    event_data: eventData,
+  });
 
   if (error) throw error;
 }
