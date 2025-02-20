@@ -1,9 +1,11 @@
-
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ChevronRight, Layout, PenSquare, Share2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const Index = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
       <main className="container px-6 py-12 mx-auto max-w-7xl">
@@ -22,7 +24,11 @@ const Index = () => {
               No coding required.
             </p>
             <div className="flex items-center justify-center gap-4">
-              <Button size="lg" className="gap-2">
+              <Button 
+                size="lg" 
+                className="gap-2"
+                onClick={() => navigate("/builder")}
+              >
                 Start Building <ChevronRight className="h-4 w-4" />
               </Button>
               <Button variant="outline" size="lg">
