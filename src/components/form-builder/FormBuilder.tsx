@@ -6,16 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus } from "lucide-react";
-
-type FormElement = {
-  id: string;
-  type: "text" | "email" | "number";
-  label: string;
-  placeholder: string;
-};
+import { FormBuilderSDK, type FormBlock } from "@/sdk";
+import { useToast } from "@/hooks/use-toast";
 
 const FormBuilder = () => {
-  const [elements, setElements] = useState<FormElement[]>([]);
+  const [elements, setElements] = useState<FormBlock[]>([]);
+  const { toast } = useToast();
 
   const onDragEnd = (result: any) => {
     if (!result.destination) return;
@@ -27,14 +23,41 @@ const FormBuilder = () => {
     setElements(items);
   };
 
-  const addElement = (type: FormElement["type"]) => {
-    const newElement: FormElement = {
-      id: Date.now().toString(),
+  const addElement = (type: FormBlock["type"]) => {
+    const builder = new FormBuilderSDK({ title: "New Form" });
+    const block = builder.addBlock({
       type,
       label: `New ${type} field`,
       placeholder: `Enter ${type}...`,
-    };
-    setElements([...elements, newElement]);
+    }).toJSON();
+
+    setElements([...elements, block.form_schema[0] as FormBlock]);
+  };
+
+  const saveForm = async () => {
+    try {
+      const builder = new FormBuilderSDK({
+        title: "My Form",
+        description: "A form created with FormBuilder SDK",
+      });
+
+      elements.forEach(element => {
+        builder.addBlock(element);
+      });
+
+      await builder.save();
+
+      toast({
+        title: "Success",
+        description: "Form saved successfully",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
+    }
   };
 
   return (
@@ -45,6 +68,9 @@ const FormBuilder = () => {
           <Button onClick={() => addElement("text")} size="sm">
             <Plus className="h-4 w-4 mr-2" />
             Add Field
+          </Button>
+          <Button onClick={saveForm} variant="secondary" size="sm">
+            Save Form
           </Button>
         </div>
       </div>
