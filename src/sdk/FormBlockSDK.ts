@@ -1,19 +1,26 @@
 
+/**
+ * FormBlockSDK: Handles individual form field creation and validation
+ * This is the foundation for creating form elements
+ */
+
 import type { Form } from "@/types/forms";
 
+/** Supported form field types */
 export type FormBlockType = "text" | "email" | "number" | "select" | "checkbox" | "radio";
 
+/** Configuration interface for form blocks */
 export interface FormBlockConfig {
   type: FormBlockType;
   label: string;
   placeholder?: string;
   required?: boolean;
-  options?: string[];
+  options?: string[]; // For select, radio, checkbox fields
   validation?: {
-    pattern?: string;
-    min?: number;
-    max?: number;
-    customMessage?: string;
+    pattern?: string; // Regex pattern for validation
+    min?: number; // Minimum value/length
+    max?: number; // Maximum value/length
+    customMessage?: string; // Custom error message
   };
 }
 
@@ -29,6 +36,10 @@ export class FormBlockSDK {
     this.config = this.validateConfig(config);
   }
 
+  /**
+   * Validates the block configuration before creation
+   * Ensures required fields are present and valid
+   */
   private validateConfig(config: FormBlockConfig): FormBlockConfig {
     if (!config.type || !config.label) {
       throw new Error("Block type and label are required");
@@ -41,6 +52,10 @@ export class FormBlockSDK {
     return config;
   }
 
+  /**
+   * Converts the block configuration to a JSON representation
+   * Adds a unique ID for block identification
+   */
   public toJSON(): FormBlock {
     return {
       id: crypto.randomUUID(),

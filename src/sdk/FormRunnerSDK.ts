@@ -1,4 +1,9 @@
 
+/**
+ * FormRunnerSDK: Handles form rendering and submission
+ * Manages form responses and validation
+ */
+
 import type { Form, FormSubmission } from "@/types/forms";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -14,17 +19,28 @@ export class FormRunnerSDK {
     this.form = form;
   }
 
+  /**
+   * Sets a response value for a specific block
+   * Returns the runner instance for method chaining
+   */
   public setResponse(blockId: string, value: any): FormRunnerSDK {
     this.response[blockId] = value;
     return this;
   }
 
+  /**
+   * Returns a copy of the current form responses
+   */
   public getResponse(): FormResponse {
     return { ...this.response };
   }
 
+  /**
+   * Validates form responses against block configurations
+   * Checks required fields and validation rules
+   */
   public validate(): boolean {
-    const schema = this.form.form_schema as any[];
+    const schema = this.form.form_schema;
     
     for (const block of schema) {
       if (block.required && !this.response[block.id]) {
@@ -47,21 +63,31 @@ export class FormRunnerSDK {
     return true;
   }
 
+  /**
+   * Submits form responses to the database
+   * Validates responses before submission
+   */
   public async submit(): Promise<FormSubmission> {
     if (!this.validate()) {
       throw new Error("Form validation failed");
     }
 
+    const submissionData = {
+      form_id: this.form.id,
+      data: this.response,
+      metadata: {
+        submitted_at: new Date().toISOString(),
+        user_agent: navigator.userAgent,
+      },
+    };
+
     const { data, error } = await supabase
       .from("form_submissions")
-      .insert({
-        form_id: this.form.id,
-        data: this.response,
-      })
+      .insert(submissionData)
       .select()
       .single();
 
     if (error) throw error;
-    return data;
+    return data as FormSubmission;
   }
 }
