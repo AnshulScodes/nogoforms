@@ -1,4 +1,3 @@
-
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
@@ -26,6 +25,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 const FormBuilder = () => {
   const [elements, setElements] = useState<FormBlock[]>([]);
   const [formId, setFormId] = useState<string | null>(null);
+  const [previewMode, setPreviewMode] = useState(false);
   const { toast } = useToast();
 
   const onDragEnd = (result: any) => {
@@ -117,161 +117,179 @@ const FormBuilder = () => {
       <div className="mb-6 flex items-center justify-between">
         <h2 className="text-2xl font-semibold">Form Builder</h2>
         <div className="flex gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Field
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onClick={() => addElement("text")}>
-                Text Field
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => addElement("email")}>
-                Email Field
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => addElement("number")}>
-                Number Field
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => addElement("select")}>
-                Select Field
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => addElement("checkbox")}>
-                Checkbox
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => addElement("radio")}>
-                Radio Buttons
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          
-          <Button onClick={saveForm} variant="secondary" size="sm">
-            Save Form
+          <Button
+            onClick={() => setPreviewMode(!previewMode)}
+            variant="outline"
+            size="sm"
+          >
+            {previewMode ? "Edit Form" : "Preview Form"}
           </Button>
           
-          {formId && (
+          {!previewMode && (
             <>
-              <Button onClick={copyFormLink} variant="outline" size="sm">
-                <Link className="h-4 w-4 mr-2" />
-                Copy Link
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Field
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={() => addElement("text")}>
+                    Text Field
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => addElement("email")}>
+                    Email Field
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => addElement("number")}>
+                    Number Field
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => addElement("select")}>
+                    Select Field
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => addElement("checkbox")}>
+                    Checkbox
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => addElement("radio")}>
+                    Radio Buttons
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              
+              <Button onClick={saveForm} variant="secondary" size="sm">
+                Save Form
               </Button>
-              <Button onClick={copyEmbedCode} variant="outline" size="sm">
-                <Copy className="h-4 w-4 mr-2" />
-                Copy Embed
-              </Button>
+              
+              {formId && (
+                <>
+                  <Button onClick={copyFormLink} variant="outline" size="sm">
+                    <Link className="h-4 w-4 mr-2" />
+                    Copy Link
+                  </Button>
+                  <Button onClick={copyEmbedCode} variant="outline" size="sm">
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy Embed
+                  </Button>
+                </>
+              )}
             </>
           )}
         </div>
       </div>
 
-      <DragDropContext onDragEnd={onDragEnd}>
-        <Droppable droppableId="form-elements">
-          {(provided) => (
-            <div
-              {...provided.droppableProps}
-              ref={provided.innerRef}
-              className="space-y-4"
-            >
-              {elements.map((element, index) => (
-                <Draggable
-                  key={element.id}
-                  draggableId={element.id}
-                  index={index}
+      {previewMode ? (
+        <FormPreview blocks={elements} />
+      ) : (
+        <>
+          <DragDropContext onDragEnd={onDragEnd}>
+            <Droppable droppableId="form-elements">
+              {(provided) => (
+                <div
+                  {...provided.droppableProps}
+                  ref={provided.innerRef}
+                  className="space-y-4"
                 >
-                  {(provided) => (
-                    <div
-                      ref={provided.innerRef}
-                      {...provided.draggableProps}
-                      {...provided.dragHandleProps}
+                  {elements.map((element, index) => (
+                    <Draggable
+                      key={element.id}
+                      draggableId={element.id}
+                      index={index}
                     >
-                      <Card className="p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <Input
-                            value={element.label}
-                            onChange={(e) =>
-                              updateElement(index, { label: e.target.value })
-                            }
-                            className="font-medium w-auto"
-                          />
-                          <div className="flex gap-2">
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button variant="ghost" size="sm">
-                                  <Settings className="h-4 w-4" />
+                      {(provided) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          {...provided.dragHandleProps}
+                        >
+                          <Card className="p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <Input
+                                value={element.label}
+                                onChange={(e) =>
+                                  updateElement(index, { label: e.target.value })
+                                }
+                                className="font-medium w-auto"
+                              />
+                              <div className="flex gap-2">
+                                <Dialog>
+                                  <DialogTrigger asChild>
+                                    <Button variant="ghost" size="sm">
+                                      <Settings className="h-4 w-4" />
+                                    </Button>
+                                  </DialogTrigger>
+                                  <DialogContent>
+                                    <DialogHeader>
+                                      <DialogTitle>Field Settings</DialogTitle>
+                                    </DialogHeader>
+                                    <div className="space-y-4 py-4">
+                                      <div className="space-y-2">
+                                        <Label>Field Type</Label>
+                                        <Select
+                                          value={element.type}
+                                          onValueChange={(value: FormBlock["type"]) =>
+                                            updateElement(index, { type: value })
+                                          }
+                                        >
+                                          <SelectTrigger>
+                                            <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="text">Text</SelectItem>
+                                            <SelectItem value="email">Email</SelectItem>
+                                            <SelectItem value="number">Number</SelectItem>
+                                            <SelectItem value="select">Select</SelectItem>
+                                            <SelectItem value="checkbox">Checkbox</SelectItem>
+                                            <SelectItem value="radio">Radio</SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                      <div className="space-y-2">
+                                        <Label>Placeholder</Label>
+                                        <Input
+                                          value={element.placeholder || ""}
+                                          onChange={(e) =>
+                                            updateElement(index, {
+                                              placeholder: e.target.value,
+                                            })
+                                          }
+                                        />
+                                      </div>
+                                    </div>
+                                  </DialogContent>
+                                </Dialog>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => deleteElement(index)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
                                 </Button>
-                              </DialogTrigger>
-                              <DialogContent>
-                                <DialogHeader>
-                                  <DialogTitle>Field Settings</DialogTitle>
-                                </DialogHeader>
-                                <div className="space-y-4 py-4">
-                                  <div className="space-y-2">
-                                    <Label>Field Type</Label>
-                                    <Select
-                                      value={element.type}
-                                      onValueChange={(value: FormBlock["type"]) =>
-                                        updateElement(index, { type: value })
-                                      }
-                                    >
-                                      <SelectTrigger>
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="text">Text</SelectItem>
-                                        <SelectItem value="email">Email</SelectItem>
-                                        <SelectItem value="number">Number</SelectItem>
-                                        <SelectItem value="select">Select</SelectItem>
-                                        <SelectItem value="checkbox">Checkbox</SelectItem>
-                                        <SelectItem value="radio">Radio</SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                  </div>
-                                  <div className="space-y-2">
-                                    <Label>Placeholder</Label>
-                                    <Input
-                                      value={element.placeholder || ""}
-                                      onChange={(e) =>
-                                        updateElement(index, {
-                                          placeholder: e.target.value,
-                                        })
-                                      }
-                                    />
-                                  </div>
-                                </div>
-                              </DialogContent>
-                            </Dialog>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => deleteElement(index)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
+                              </div>
+                            </div>
+                            <Input
+                              type={element.type}
+                              placeholder={element.placeholder}
+                              className="mt-2"
+                            />
+                          </Card>
                         </div>
-                        <Input
-                          type={element.type}
-                          placeholder={element.placeholder}
-                          className="mt-2"
-                        />
-                      </Card>
-                    </div>
-                  )}
-                </Draggable>
-              ))}
-              {provided.placeholder}
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
+          </DragDropContext>
+
+          {elements.length === 0 && (
+            <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed">
+              <p className="text-gray-500">
+                Start by adding form elements from the toolbar above
+              </p>
             </div>
           )}
-        </Droppable>
-      </DragDropContext>
-
-      {elements.length === 0 && (
-        <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed">
-          <p className="text-gray-500">
-            Start by adding form elements from the toolbar above
-          </p>
-        </div>
+        </>
       )}
     </div>
   );
