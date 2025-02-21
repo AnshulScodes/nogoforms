@@ -1,10 +1,6 @@
 
-/**
- * FormBuilderSDK: Main interface for form creation and management
- * Handles form structure, blocks, and persistence
- */
-
 import type { Form } from "@/types/forms";
+import type { Json } from "@/types/database";
 import { FormBlockSDK, type FormBlock, type FormBlockConfig } from "./FormBlockSDK";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -28,20 +24,12 @@ export class FormBuilderSDK {
     };
   }
 
-  /**
-   * Adds a new block to the form
-   * Returns the builder instance for method chaining
-   */
   public addBlock(blockConfig: FormBlockConfig): FormBuilderSDK {
     const block = new FormBlockSDK(blockConfig);
     this.blocks.push(block.toJSON());
     return this;
   }
 
-  /**
-   * Updates an existing block's configuration
-   * Throws if block not found
-   */
   public updateBlock(blockId: string, updates: Partial<FormBlockConfig>): FormBuilderSDK {
     const blockIndex = this.blocks.findIndex((b) => b.id === blockId);
     if (blockIndex === -1) throw new Error("Block not found");
@@ -53,18 +41,11 @@ export class FormBuilderSDK {
     return this;
   }
 
-  /**
-   * Removes a block from the form
-   */
   public removeBlock(blockId: string): FormBuilderSDK {
     this.blocks = this.blocks.filter((b) => b.id !== blockId);
     return this;
   }
 
-  /**
-   * Reorders blocks based on provided block IDs
-   * Useful for drag-and-drop functionality
-   */
   public reorderBlocks(blockIds: string[]): FormBuilderSDK {
     if (blockIds.length !== this.blocks.length) {
       throw new Error("Invalid block order");
@@ -80,17 +61,24 @@ export class FormBuilderSDK {
     return this;
   }
 
-  /**
-   * Saves the form to the database
-   * Creates a new form or updates existing one
-   */
   public async save(): Promise<Form> {
+    // Convert blocks to a JSON-safe format
+    const formSchema = this.blocks.map(block => ({
+      ...block,
+      type: block.type,
+      label: block.label,
+      placeholder: block.placeholder || null,
+      required: block.required || false,
+      options: block.options || [],
+      validation: block.validation || null,
+    })) as Json;
+
     const formData = {
       title: this.form.title!,
-      description: this.form.description,
-      settings: this.form.settings,
-      form_schema: this.blocks,
-      status: this.form.status,
+      description: this.form.description || null,
+      settings: this.form.settings as Json || null,
+      form_schema: formSchema,
+      status: this.form.status || 'draft',
     };
     
     const { data, error } = await supabase
@@ -103,10 +91,6 @@ export class FormBuilderSDK {
     return data as Form;
   }
 
-  /**
-   * Returns JSON representation of the form
-   * Useful for previewing before saving
-   */
   public toJSON(): Partial<Form> {
     return {
       ...this.form,
