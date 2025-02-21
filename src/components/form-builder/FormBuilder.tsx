@@ -1,3 +1,4 @@
+
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
@@ -7,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Plus, Copy, Link, Trash2, Settings } from "lucide-react";
 import { FormBuilderSDK, type FormBlock } from "@/sdk";
 import { useToast } from "@/hooks/use-toast";
+import FormPreview from "./FormPreview"; // Add this import
 import {
   DropdownMenu,
   DropdownMenuContent,
