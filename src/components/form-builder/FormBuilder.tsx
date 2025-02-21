@@ -5,12 +5,27 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus } from "lucide-react";
+import { Plus, Copy, Link, Trash2, Settings } from "lucide-react";
 import { FormBuilderSDK, type FormBlock } from "@/sdk";
 import { useToast } from "@/hooks/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const FormBuilder = () => {
   const [elements, setElements] = useState<FormBlock[]>([]);
+  const [formId, setFormId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const onDragEnd = (result: any) => {
@@ -34,6 +49,18 @@ const FormBuilder = () => {
     setElements([...elements, block.form_schema[0] as FormBlock]);
   };
 
+  const updateElement = (index: number, updates: Partial<FormBlock>) => {
+    const newElements = [...elements];
+    newElements[index] = { ...newElements[index], ...updates };
+    setElements(newElements);
+  };
+
+  const deleteElement = (index: number) => {
+    const newElements = [...elements];
+    newElements.splice(index, 1);
+    setElements(newElements);
+  };
+
   const saveForm = async () => {
     try {
       const builder = new FormBuilderSDK({
@@ -45,7 +72,8 @@ const FormBuilder = () => {
         builder.addBlock(element);
       });
 
-      await builder.save();
+      const form = await builder.save();
+      setFormId(form.id);
 
       toast({
         title: "Success",
@@ -60,18 +88,80 @@ const FormBuilder = () => {
     }
   };
 
+  const copyEmbedCode = () => {
+    if (!formId) return;
+    
+    const embedCode = `<iframe src="${window.location.origin}/form/${formId}" width="100%" height="600" frameborder="0"></iframe>`;
+    navigator.clipboard.writeText(embedCode);
+    
+    toast({
+      title: "Copied!",
+      description: "Embed code copied to clipboard",
+    });
+  };
+
+  const copyFormLink = () => {
+    if (!formId) return;
+    
+    const formLink = `${window.location.origin}/form/${formId}`;
+    navigator.clipboard.writeText(formLink);
+    
+    toast({
+      title: "Copied!",
+      description: "Form link copied to clipboard",
+    });
+  };
+
   return (
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
         <h2 className="text-2xl font-semibold">Form Builder</h2>
         <div className="flex gap-2">
-          <Button onClick={() => addElement("text")} size="sm">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Field
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Field
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={() => addElement("text")}>
+                Text Field
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => addElement("email")}>
+                Email Field
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => addElement("number")}>
+                Number Field
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => addElement("select")}>
+                Select Field
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => addElement("checkbox")}>
+                Checkbox
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => addElement("radio")}>
+                Radio Buttons
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          
           <Button onClick={saveForm} variant="secondary" size="sm">
             Save Form
           </Button>
+          
+          {formId && (
+            <>
+              <Button onClick={copyFormLink} variant="outline" size="sm">
+                <Link className="h-4 w-4 mr-2" />
+                Copy Link
+              </Button>
+              <Button onClick={copyEmbedCode} variant="outline" size="sm">
+                <Copy className="h-4 w-4 mr-2" />
+                Copy Embed
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
@@ -95,8 +185,71 @@ const FormBuilder = () => {
                       {...provided.draggableProps}
                       {...provided.dragHandleProps}
                     >
-                      <Card className="p-4 hover-card">
-                        <Label>{element.label}</Label>
+                      <Card className="p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <Input
+                            value={element.label}
+                            onChange={(e) =>
+                              updateElement(index, { label: e.target.value })
+                            }
+                            className="font-medium w-auto"
+                          />
+                          <div className="flex gap-2">
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                  <Settings className="h-4 w-4" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Field Settings</DialogTitle>
+                                </DialogHeader>
+                                <div className="space-y-4 py-4">
+                                  <div className="space-y-2">
+                                    <Label>Field Type</Label>
+                                    <Select
+                                      value={element.type}
+                                      onValueChange={(value: FormBlock["type"]) =>
+                                        updateElement(index, { type: value })
+                                      }
+                                    >
+                                      <SelectTrigger>
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="text">Text</SelectItem>
+                                        <SelectItem value="email">Email</SelectItem>
+                                        <SelectItem value="number">Number</SelectItem>
+                                        <SelectItem value="select">Select</SelectItem>
+                                        <SelectItem value="checkbox">Checkbox</SelectItem>
+                                        <SelectItem value="radio">Radio</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                  <div className="space-y-2">
+                                    <Label>Placeholder</Label>
+                                    <Input
+                                      value={element.placeholder || ""}
+                                      onChange={(e) =>
+                                        updateElement(index, {
+                                          placeholder: e.target.value,
+                                        })
+                                      }
+                                    />
+                                  </div>
+                                </div>
+                              </DialogContent>
+                            </Dialog>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => deleteElement(index)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
                         <Input
                           type={element.type}
                           placeholder={element.placeholder}
