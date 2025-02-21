@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -58,11 +57,31 @@ export default function Auth() {
         throw error;
       }
 
-      // Log successful response for debugging
-      console.log("Auth response:", {
+      // Log the full user object
+      console.log("Auth user data:", {
         user: data?.user,
         session: data?.session,
+        metadata: data?.user?.user_metadata,
+        email: data?.user?.email,
+        id: data?.user?.id,
+        created_at: data?.user?.created_at,
       });
+
+      // If signing up, create a profile
+      if (isSignUp && data.user) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: data.user.id,
+            email: data.user.email,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          });
+
+        if (profileError) {
+          console.error("Error creating profile:", profileError);
+        }
+      }
 
       toast({
         title: isSignUp ? "Account created!" : "Welcome back!",
