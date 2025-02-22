@@ -49,7 +49,7 @@ const App = () => (
             }
           />
           <Route
-            path="/forms/:formId"
+            path="/form/:formId"
             element={
               <AuthGuard>
                 <FormBuilder preview />

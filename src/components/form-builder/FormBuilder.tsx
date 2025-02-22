@@ -1,5 +1,6 @@
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +9,7 @@ import { Plus, Copy, Link, Trash2, Settings } from "lucide-react";
 import { FormBuilderSDK, type FormBlock } from "@/sdk";
 import { useToast } from "@/hooks/use-toast";
 import FormPreview from "./FormPreview";
+import { getFormById } from "@/services/forms";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,9 +31,31 @@ interface FormBuilderProps {
 
 const FormBuilder = ({ preview = false }: FormBuilderProps) => {
   const [elements, setElements] = useState<FormBlock[]>([]);
-  const [formId, setFormId] = useState<string | null>(null);
-  const [previewMode, setPreviewMode] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const { formId } = useParams();
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (formId) {
+      loadForm(formId);
+    }
+  }, [formId]);
+
+  const loadForm = async (id: string) => {
+    try {
+      setLoading(true);
+      const form = await getFormById(id);
+      setElements(form.form_schema);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load form",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const onDragEnd = (result: any) => {
     if (!result.destination) return;

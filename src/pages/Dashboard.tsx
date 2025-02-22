@@ -87,7 +87,8 @@ const Dashboard = () => {
   };
 
   const copyFormLink = (formId: string) => {
-    const formLink = `${window.location.origin}/forms/${formId}`;
+    // Use consistent path format
+    const formLink = `${window.location.origin}/form/${formId}`;
     navigator.clipboard.writeText(formLink);
     toast({
       title: "Copied!",
@@ -154,7 +155,7 @@ const Dashboard = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => window.open(`/forms/${form.id}`, '_blank')}
+                  onClick={() => window.open(`/form/${form.id}`, '_blank')}
                 >
                   <ExternalLink className="h-4 w-4" />
                 </Button>
