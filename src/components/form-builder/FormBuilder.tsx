@@ -70,12 +70,21 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
 
   const addElement = (type: FormBlock["type"]) => {
     const builder = new FormBuilderSDK({ title: "New Form" });
-    const block = builder.addBlock({
+    let blockConfig: FormBlockConfig = {
       type,
       label: `New ${type} field`,
       placeholder: `Enter ${type}...`,
-    }).toJSON();
+    };
 
+    // Add default options for select and radio types
+    if (type === "select" || type === "radio") {
+      blockConfig = {
+        ...blockConfig,
+        options: ["Option 1", "Option 2", "Option 3"],
+      };
+    }
+
+    const block = builder.addBlock(blockConfig).toJSON();
     setElements([...elements, block.form_schema[0] as FormBlock]);
   };
 
