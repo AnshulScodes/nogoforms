@@ -1,28 +1,72 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import type { Form } from "@/types/forms";
+import type { Form, FormBlockJson } from "@/types/forms";
+import type { Json } from "@/types/database";
+import type { FormBlock } from "@/sdk/FormBlockSDK";
 
-export async function createForm(form: { title: string } & Partial<Omit<Form, 'id' | 'title'>>) {
+// Helper function to convert FormBlock[] to Json
+function formBlocksToJson(blocks: FormBlock[]): Json {
+  return blocks.map(block => ({
+    ...block,
+    type: block.type,
+    label: block.label,
+    placeholder: block.placeholder || null,
+    required: block.required || false,
+    options: block.options || [],
+    validation: block.validation || null,
+  })) as Json;
+}
+
+// Helper function to convert Json to FormBlock[]
+function jsonToFormBlocks(json: Json): FormBlock[] {
+  if (!Array.isArray(json)) return [];
+  return (json as FormBlockJson[]).map(block => ({
+    ...block,
+    type: block.type as FormBlock["type"],
+  }));
+}
+
+export async function createForm(formData: { title: string } & Partial<Omit<Form, 'id' | 'title'>>) {
+  const { form_schema, ...rest } = formData;
+  const supabaseData = {
+    ...rest,
+    form_schema: form_schema ? formBlocksToJson(form_schema) : [],
+  };
+
   const { data, error } = await supabase
     .from("forms")
-    .insert(form)
+    .insert(supabaseData)
     .select()
     .single();
 
   if (error) throw error;
-  return data;
+
+  return {
+    ...data,
+    form_schema: jsonToFormBlocks(data.form_schema),
+  } as Form;
 }
 
 export async function updateForm(id: string, updates: Partial<Omit<Form, 'id'>>) {
+  const { form_schema, ...rest } = updates;
+  const supabaseData = {
+    ...rest,
+    form_schema: form_schema ? formBlocksToJson(form_schema) : undefined,
+  };
+
   const { data, error } = await supabase
     .from("forms")
-    .update(updates)
+    .update(supabaseData)
     .eq("id", id)
     .select()
     .single();
 
   if (error) throw error;
-  return data;
+
+  return {
+    ...data,
+    form_schema: jsonToFormBlocks(data.form_schema),
+  } as Form;
 }
 
 export async function getForms() {
@@ -32,7 +76,11 @@ export async function getForms() {
     .order("created_at", { ascending: false });
 
   if (error) throw error;
-  return data;
+
+  return (data || []).map(form => ({
+    ...form,
+    form_schema: jsonToFormBlocks(form.form_schema),
+  })) as Form[];
 }
 
 export async function getFormById(id: string) {
@@ -43,7 +91,11 @@ export async function getFormById(id: string) {
     .single();
 
   if (error) throw error;
-  return data;
+
+  return {
+    ...data,
+    form_schema: jsonToFormBlocks(data.form_schema),
+  } as Form;
 }
 
 export async function deleteForm(id: string) {
