@@ -3,6 +3,8 @@
  * Core type definitions for the form builder system
  */
 
+import type { FormBlock } from "@/sdk/FormBlockSDK";
+
 export interface Form {
   id: string;
   title: string;
@@ -11,7 +13,7 @@ export interface Form {
    * Array of form blocks that make up the form structure
    * Each block represents a form field with its configuration
    */
-  form_schema: any[]; // Stores the form blocks configuration
+  form_schema: FormBlock[]; // Now properly typed as FormBlock array
   /** Additional form settings like theme, behavior, etc. */
   settings: Record<string, any> | null;
   /** Current form status: 'draft', 'published', 'archived' */

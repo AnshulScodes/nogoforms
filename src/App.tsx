@@ -40,6 +40,22 @@ const App = () => (
               </AuthGuard>
             }
           />
+          <Route
+            path="/builder/:formId"
+            element={
+              <AuthGuard>
+                <FormBuilder />
+              </AuthGuard>
+            }
+          />
+          <Route
+            path="/forms/:formId"
+            element={
+              <AuthGuard>
+                <FormBuilder preview />
+              </AuthGuard>
+            }
+          />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

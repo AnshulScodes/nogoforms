@@ -7,6 +7,7 @@ import { Plus, PenSquare, Copy, Trash2, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { Form } from "@/types/forms";
+import type { FormBlock } from "@/sdk/FormBlockSDK";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,13 +32,20 @@ const Dashboard = () => {
 
   const fetchForms = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: formData, error } = await supabase
         .from("forms")
         .select("*")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setForms(data || []);
+
+      // Transform the data to ensure form_schema is treated as FormBlock[]
+      const transformedForms: Form[] = (formData || []).map(form => ({
+        ...form,
+        form_schema: Array.isArray(form.form_schema) ? form.form_schema as FormBlock[] : []
+      }));
+
+      setForms(transformedForms);
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -73,12 +81,16 @@ const Dashboard = () => {
   };
 
   const copyFormLink = (formId: string) => {
-    const formLink = `${window.location.origin}/form/${formId}`;
+    const formLink = `${window.location.origin}/forms/${formId}`;
     navigator.clipboard.writeText(formLink);
     toast({
       title: "Copied!",
       description: "Form link copied to clipboard",
     });
+  };
+
+  const handleEditForm = (formId: string) => {
+    navigate(`/builder/${formId}`);
   };
 
   if (loading) {
@@ -136,14 +148,14 @@ const Dashboard = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => window.open(`/form/${form.id}`, '_blank')}
+                  onClick={() => window.open(`/forms/${form.id}`, '_blank')}
                 >
                   <ExternalLink className="h-4 w-4" />
                 </Button>
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => navigate(`/builder/${form.id}`)}
+                  onClick={() => handleEditForm(form.id)}
                 >
                   <PenSquare className="h-4 w-4" />
                 </Button>
