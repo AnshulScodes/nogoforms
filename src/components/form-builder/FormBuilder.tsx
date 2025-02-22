@@ -1,3 +1,4 @@
+
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
@@ -102,8 +103,7 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
       });
 
       const form = await builder.save();
-      setFormId(form.id);
-
+      
       toast({
         title: "Success",
         description: "Form saved successfully",
@@ -141,20 +141,16 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
     });
   };
 
+  if (loading) {
+    return <div className="p-8">Loading...</div>;
+  }
+
   return (
     <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-2xl font-semibold">Form Builder</h2>
-        <div className="flex gap-2">
-          <Button
-            onClick={() => setPreviewMode(!previewMode)}
-            variant="outline"
-            size="sm"
-          >
-            {previewMode ? "Edit Form" : "Preview Form"}
-          </Button>
-          
-          {!previewMode && (
+      {!preview && (
+        <div className="mb-6 flex items-center justify-between">
+          <h2 className="text-2xl font-semibold">Form Builder</h2>
+          <div className="flex gap-2">
             <>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -202,11 +198,11 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
                 </>
               )}
             </>
-          )}
+          </div>
         </div>
-      </div>
+      )}
 
-      {previewMode ? (
+      {preview ? (
         <FormPreview blocks={elements} />
       ) : (
         <>
