@@ -1,7 +1,7 @@
 
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,8 +33,11 @@ interface FormBuilderProps {
 const FormBuilder = ({ preview = false }: FormBuilderProps) => {
   const [elements, setElements] = useState<FormBlock[]>([]);
   const [loading, setLoading] = useState(false);
+  const [formTitle, setFormTitle] = useState("New Form");
+  const [formDescription, setFormDescription] = useState("");
   const { formId } = useParams();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (formId) {
@@ -47,6 +50,8 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
       setLoading(true);
       const form = await getFormById(id);
       setElements(form.form_schema);
+      setFormTitle(form.title);
+      setFormDescription(form.description || "");
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -69,8 +74,8 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
   };
 
   const addElement = (type: FormBlock["type"]) => {
-    const builder = new FormBuilderSDK({ title: "New Form" });
-    let blockConfig: FormBlockConfig = {
+    const builder = new FormBuilderSDK({ title: formTitle });
+    let blockConfig = {
       type,
       label: `New ${type} field`,
       placeholder: `Enter ${type}...`,
@@ -101,10 +106,19 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
   };
 
   const saveForm = async () => {
+    if (!formTitle.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Form title is required",
+      });
+      return;
+    }
+
     try {
       const builder = new FormBuilderSDK({
-        title: "My Form",
-        description: "A form created with FormBuilder SDK",
+        title: formTitle,
+        description: formDescription,
       });
 
       elements.forEach(element => {
@@ -117,12 +131,26 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
         title: "Success",
         description: "Form saved successfully",
       });
+
+      if (!formId) {
+        // If this was a new form, redirect to the edit page
+        navigate(`/builder/${form.id}`);
+      }
     } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message,
-      });
+      // Check if the error is due to duplicate title
+      if (error.message?.includes('unique_form_title')) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "A form with this title already exists. Please choose a different title.",
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: error.message,
+        });
+      }
     }
   };
 
@@ -157,56 +185,71 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
   return (
     <div className="p-6">
       {!preview && (
-        <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-2xl font-semibold">Form Builder</h2>
-          <div className="flex gap-2">
-            <>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button size="sm">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Field
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem onClick={() => addElement("text")}>
-                    Text Field
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => addElement("email")}>
-                    Email Field
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => addElement("number")}>
-                    Number Field
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => addElement("select")}>
-                    Select Field
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => addElement("checkbox")}>
-                    Checkbox
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => addElement("radio")}>
-                    Radio Buttons
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              
-              <Button onClick={saveForm} variant="secondary" size="sm">
-                Save Form
-              </Button>
-              
-              {formId && (
-                <>
-                  <Button onClick={copyFormLink} variant="outline" size="sm">
-                    <Link className="h-4 w-4 mr-2" />
-                    Copy Link
-                  </Button>
-                  <Button onClick={copyEmbedCode} variant="outline" size="sm">
-                    <Copy className="h-4 w-4 mr-2" />
-                    Copy Embed
-                  </Button>
-                </>
-              )}
-            </>
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="space-y-2">
+              <Input
+                value={formTitle}
+                onChange={(e) => setFormTitle(e.target.value)}
+                className="text-2xl font-semibold h-auto text-xl px-0 border-0 focus-visible:ring-0 w-[300px]"
+                placeholder="Enter form title..."
+              />
+              <Input
+                value={formDescription}
+                onChange={(e) => setFormDescription(e.target.value)}
+                className="text-sm text-muted-foreground h-auto px-0 border-0 focus-visible:ring-0 w-[500px]"
+                placeholder="Enter form description (optional)..."
+              />
+            </div>
+            <div className="flex gap-2">
+              <>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="sm">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Field
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuItem onClick={() => addElement("text")}>
+                      Text Field
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => addElement("email")}>
+                      Email Field
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => addElement("number")}>
+                      Number Field
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => addElement("select")}>
+                      Select Field
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => addElement("checkbox")}>
+                      Checkbox
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => addElement("radio")}>
+                      Radio Buttons
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                
+                <Button onClick={saveForm} variant="secondary" size="sm">
+                  Save Form
+                </Button>
+                
+                {formId && (
+                  <>
+                    <Button onClick={copyFormLink} variant="outline" size="sm">
+                      <Link className="h-4 w-4 mr-2" />
+                      Copy Link
+                    </Button>
+                    <Button onClick={copyEmbedCode} variant="outline" size="sm">
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy Embed
+                    </Button>
+                  </>
+                )}
+              </>
+            </div>
           </div>
         </div>
       )}
