@@ -1,4 +1,3 @@
-
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -75,21 +74,17 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
 
   const addElement = (type: FormBlock["type"]) => {
     const builder = new FormBuilderSDK({ title: formTitle });
-    let blockConfig = {
+    
+    const baseConfig: FormBlock = {
+      id: crypto.randomUUID(),
       type,
       label: `New ${type} field`,
       placeholder: `Enter ${type}...`,
+      required: false,
+      options: type === "select" || type === "radio" ? ["Option 1", "Option 2", "Option 3"] : undefined
     };
 
-    // Add default options for select and radio types
-    if (type === "select" || type === "radio") {
-      blockConfig = {
-        ...blockConfig,
-        options: ["Option 1", "Option 2", "Option 3"],
-      };
-    }
-
-    const block = builder.addBlock(blockConfig).toJSON();
+    const block = builder.addBlock(baseConfig).toJSON();
     setElements([...elements, block.form_schema[0] as FormBlock]);
   };
 
@@ -133,11 +128,9 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
       });
 
       if (!formId) {
-        // If this was a new form, redirect to the edit page
         navigate(`/builder/${form.id}`);
       }
     } catch (error: any) {
-      // Check if the error is due to duplicate title
       if (error.message?.includes('unique_form_title')) {
         toast({
           variant: "destructive",
