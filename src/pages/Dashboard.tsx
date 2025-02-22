@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, PenSquare, Copy, Trash2, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import type { Form } from "@/types/forms";
+import type { Form, FormBlockJson } from "@/types/forms";
 import type { FormBlock } from "@/sdk/FormBlockSDK";
 import {
   AlertDialog,
@@ -39,10 +39,16 @@ const Dashboard = () => {
 
       if (error) throw error;
 
-      // Transform the data to ensure form_schema is treated as FormBlock[]
+      // Transform the data to ensure form_schema is properly typed
       const transformedForms: Form[] = (formData || []).map(form => ({
         ...form,
-        form_schema: Array.isArray(form.form_schema) ? form.form_schema as FormBlock[] : []
+        form_schema: (Array.isArray(form.form_schema) 
+          ? form.form_schema as FormBlockJson[]
+          : []
+        ).map(block => ({
+          ...block,
+          type: block.type as FormBlock["type"],
+        })) as FormBlock[],
       }));
 
       setForms(transformedForms);
