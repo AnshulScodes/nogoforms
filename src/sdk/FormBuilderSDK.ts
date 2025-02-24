@@ -8,13 +8,16 @@ export interface FormBuilderConfig {
   title: string;
   description?: string;
   settings?: Record<string, any>;
+  id?: string; // Add id to config for updates
 }
 
 export class FormBuilderSDK {
   private form: Partial<Form>;
   private blocks: FormBlock[] = [];
+  private id?: string;
 
   constructor(config: FormBuilderConfig) {
+    this.id = config.id;
     this.form = {
       title: config.title,
       description: config.description,
@@ -62,6 +65,9 @@ export class FormBuilderSDK {
   }
 
   public async save(): Promise<Form> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("User not authenticated");
+
     const formSchema = this.blocks.map(block => ({
       ...block,
       type: block.type,
@@ -78,20 +84,38 @@ export class FormBuilderSDK {
       settings: this.form.settings as Json || null,
       form_schema: formSchema,
       status: this.form.status || 'draft',
+      owner_id: user.id,
     };
     
-    const { data, error } = await supabase
-      .from("forms")
-      .insert(formData)
-      .select()
-      .single();
+    let response;
+    
+    if (this.id) {
+      // Update existing form
+      const { data, error } = await supabase
+        .from("forms")
+        .update(formData)
+        .eq('id', this.id)
+        .select()
+        .single();
 
-    if (error) throw error;
+      if (error) throw error;
+      response = data;
+    } else {
+      // Create new form
+      const { data, error } = await supabase
+        .from("forms")
+        .insert(formData)
+        .select()
+        .single();
+
+      if (error) throw error;
+      response = data;
+    }
 
     // Convert the form_schema back to FormBlock[] type
     return {
-      ...data,
-      form_schema: (data.form_schema as FormBlockJson[]).map(block => ({
+      ...response,
+      form_schema: (response.form_schema as FormBlockJson[]).map(block => ({
         ...block,
         type: block.type as FormBlock["type"],
       })) as FormBlock[]
