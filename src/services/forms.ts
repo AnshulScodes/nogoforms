@@ -27,9 +27,12 @@ function jsonToFormBlocks(json: Json): FormBlock[] {
 }
 
 export async function createForm(formData: { title: string } & Partial<Omit<Form, 'id' | 'title'>>) {
+  const { data: { user } } = await supabase.auth.getUser();
+  
   const { form_schema, ...rest } = formData;
   const supabaseData = {
     ...rest,
+    owner_id: user?.id,
     form_schema: form_schema ? formBlocksToJson(form_schema) : [],
   };
 
@@ -110,6 +113,18 @@ export async function submitFormResponse(formId: string, data: any) {
   });
 
   if (error) throw error;
+}
+
+export async function getFormResponses(formId: string) {
+  const { data, error } = await supabase
+    .from("form_submissions")
+    .select("*")
+    .eq("form_id", formId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+
+  return data;
 }
 
 export async function trackFormEvent(formId: string, eventType: string, eventData: any = {}) {
