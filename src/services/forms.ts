@@ -107,12 +107,21 @@ export async function deleteForm(id: string) {
 }
 
 export async function submitFormResponse(formId: string, data: any) {
-  const { error } = await supabase.from("form_submissions").insert({
-    form_id: formId,
-    data,
-  });
+  const { error } = await supabase
+    .from("form_submissions")
+    .insert({
+      form_id: formId,
+      data,
+      metadata: {
+        submitted_at: new Date().toISOString(),
+        user_agent: navigator.userAgent,
+      },
+    });
 
-  if (error) throw error;
+  if (error) {
+    console.error("Form submission error:", error);
+    throw error;
+  }
 }
 
 export async function getFormResponses(formId: string) {
@@ -122,7 +131,10 @@ export async function getFormResponses(formId: string) {
     .eq("form_id", formId)
     .order("created_at", { ascending: false });
 
-  if (error) throw error;
+  if (error) {
+    console.error("Error fetching form responses:", error);
+    throw error;
+  }
 
   return data;
 }

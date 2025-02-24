@@ -50,7 +50,8 @@ const FormPreview: React.FC<FormPreviewProps> = ({ blocks, formId }) => {
         description: "Your response has been submitted.",
       });
       setFormData({}); // Reset form
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Form submission error:", error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -61,14 +62,21 @@ const FormPreview: React.FC<FormPreviewProps> = ({ blocks, formId }) => {
     }
   };
 
+  const validateRequired = () => {
+    const requiredFields = blocks.filter(block => block.required);
+    return requiredFields.every(field => formData[field.id]);
+  };
+
   return (
     <Card className="p-6">
       <form onSubmit={handleSubmit} className="space-y-6">
         {blocks.map((block) => (
           <div key={block.id} className="space-y-2">
-            <Label>{block.label}</Label>
+            <Label>
+              {block.label}
+              {block.required && <span className="text-red-500 ml-1">*</span>}
+            </Label>
             
-            {/* Text, Email, Number inputs */}
             {['text', 'email', 'number'].includes(block.type) && (
               <Input
                 type={block.type}
@@ -79,7 +87,6 @@ const FormPreview: React.FC<FormPreviewProps> = ({ blocks, formId }) => {
               />
             )}
 
-            {/* Select dropdown */}
             {block.type === 'select' && (
               <Select
                 value={formData[block.id] || ''}
@@ -98,13 +105,13 @@ const FormPreview: React.FC<FormPreviewProps> = ({ blocks, formId }) => {
               </Select>
             )}
 
-            {/* Checkbox */}
             {block.type === 'checkbox' && (
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id={block.id}
                   checked={formData[block.id] || false}
                   onCheckedChange={(checked) => handleInputChange(block.id, checked)}
+                  required={block.required}
                 />
                 <label
                   htmlFor={block.id}
@@ -115,11 +122,11 @@ const FormPreview: React.FC<FormPreviewProps> = ({ blocks, formId }) => {
               </div>
             )}
 
-            {/* Radio buttons */}
             {block.type === 'radio' && (
               <RadioGroup
                 value={formData[block.id] || ''}
                 onValueChange={(value) => handleInputChange(block.id, value)}
+                required={block.required}
               >
                 {block.options?.map((option) => (
                   <div key={option} className="flex items-center space-x-2">
@@ -135,7 +142,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({ blocks, formId }) => {
         <Button 
           type="submit" 
           className="w-full"
-          disabled={isSubmitting}
+          disabled={isSubmitting || !validateRequired()}
         >
           {isSubmitting ? 'Submitting...' : 'Submit'}
         </Button>
