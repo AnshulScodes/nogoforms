@@ -1,45 +1,37 @@
 
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
 import FormPreview from "@/components/form-builder/FormPreview";
-import { getFormById } from "@/services/forms";
+import { supabase } from "@/integrations/supabase/client";
 import type { Form } from "@/types/forms";
 
 const FormEmbed = () => {
   const [form, setForm] = useState<Form | null>(null);
-  const [loading, setLoading] = useState(true);
-  const { formId } = useParams();
 
   useEffect(() => {
-    if (formId) {
-      loadForm(formId);
-    }
-  }, [formId]);
+    const loadForm = async () => {
+      // Get the form ID from the URL parameter
+      const formId = new URLSearchParams(window.location.search).get('id');
+      if (!formId) return;
 
-  const loadForm = async (id: string) => {
-    try {
-      const formData = await getFormById(id);
-      setForm(formData);
-    } catch (error) {
-      console.error("Failed to load form:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      // Fetch the form directly, no auth needed
+      const { data, error } = await supabase
+        .from("forms")
+        .select("*")
+        .eq("id", formId)
+        .single();
 
-  if (loading) {
-    return <div className="p-4">Loading...</div>;
-  }
+      if (!error && data) {
+        setForm(data as Form);
+      }
+    };
 
-  if (!form) {
-    return <div className="p-4">Form not found</div>;
-  }
+    loadForm();
+  }, []);
 
-  return (
-    <div className="p-4">
-      <FormPreview blocks={form.form_schema} formId={form.id} />
-    </div>
-  );
+  if (!form) return null;
+
+  // Just the form, nothing else
+  return <FormPreview blocks={form.form_schema} formId={form.id} />;
 };
 
 export default FormEmbed;
