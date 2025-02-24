@@ -1,11 +1,12 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useToast } from "@/hooks/use-toast";
 import {
   Select,
   SelectContent,
@@ -13,16 +14,56 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { submitFormResponse } from '@/services/forms';
 import type { FormBlock } from '@/sdk';
 
 interface FormPreviewProps {
   blocks: FormBlock[];
+  formId?: string;
 }
 
-const FormPreview: React.FC<FormPreviewProps> = ({ blocks }) => {
+const FormPreview: React.FC<FormPreviewProps> = ({ blocks, formId }) => {
+  const [formData, setFormData] = useState<Record<string, any>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
+
+  const handleInputChange = (blockId: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [blockId]: value
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formId) {
+      console.log('Preview mode - form data:', formData);
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await submitFormResponse(formId, formData);
+      toast({
+        title: "Success!",
+        description: "Your response has been submitted.",
+      });
+      setFormData({}); // Reset form
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to submit form. Please try again.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <Card className="p-6">
-      <form className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6">
         {blocks.map((block) => (
           <div key={block.id} className="space-y-2">
             <Label>{block.label}</Label>
@@ -33,12 +74,17 @@ const FormPreview: React.FC<FormPreviewProps> = ({ blocks }) => {
                 type={block.type}
                 placeholder={block.placeholder}
                 required={block.required}
+                value={formData[block.id] || ''}
+                onChange={(e) => handleInputChange(block.id, e.target.value)}
               />
             )}
 
             {/* Select dropdown */}
             {block.type === 'select' && (
-              <Select>
+              <Select
+                value={formData[block.id] || ''}
+                onValueChange={(value) => handleInputChange(block.id, value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder={block.placeholder} />
                 </SelectTrigger>
@@ -55,7 +101,11 @@ const FormPreview: React.FC<FormPreviewProps> = ({ blocks }) => {
             {/* Checkbox */}
             {block.type === 'checkbox' && (
               <div className="flex items-center space-x-2">
-                <Checkbox id={block.id} />
+                <Checkbox
+                  id={block.id}
+                  checked={formData[block.id] || false}
+                  onCheckedChange={(checked) => handleInputChange(block.id, checked)}
+                />
                 <label
                   htmlFor={block.id}
                   className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
@@ -67,7 +117,10 @@ const FormPreview: React.FC<FormPreviewProps> = ({ blocks }) => {
 
             {/* Radio buttons */}
             {block.type === 'radio' && (
-              <RadioGroup>
+              <RadioGroup
+                value={formData[block.id] || ''}
+                onValueChange={(value) => handleInputChange(block.id, value)}
+              >
                 {block.options?.map((option) => (
                   <div key={option} className="flex items-center space-x-2">
                     <RadioGroupItem value={option} id={`${block.id}-${option}`} />
@@ -79,8 +132,12 @@ const FormPreview: React.FC<FormPreviewProps> = ({ blocks }) => {
           </div>
         ))}
 
-        <Button type="submit" className="w-full">
-          Submit
+        <Button 
+          type="submit" 
+          className="w-full"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? 'Submitting...' : 'Submit'}
         </Button>
       </form>
     </Card>
