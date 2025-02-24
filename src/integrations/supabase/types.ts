@@ -106,6 +106,7 @@ export type Database = {
           description: string | null
           form_schema: Json
           id: string
+          owner_id: string | null
           settings: Json | null
           status: string | null
           title: string
@@ -116,6 +117,7 @@ export type Database = {
           description?: string | null
           form_schema?: Json
           id?: string
+          owner_id?: string | null
           settings?: Json | null
           status?: string | null
           title: string
@@ -126,6 +128,7 @@ export type Database = {
           description?: string | null
           form_schema?: Json
           id?: string
+          owner_id?: string | null
           settings?: Json | null
           status?: string | null
           title?: string

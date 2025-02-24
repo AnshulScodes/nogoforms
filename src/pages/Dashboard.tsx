@@ -3,11 +3,11 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, PenSquare, Copy, Trash2, ExternalLink } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { Plus, PenSquare, Copy, Trash2, ExternalLink, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import type { Form, FormBlockJson } from "@/types/forms";
+import type { Form, FormBlockJson, FormSubmission } from "@/types/forms";
 import type { FormBlock } from "@/sdk/FormBlockSDK";
+import { getFormResponses, getForms, deleteForm } from "@/services/forms";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,10 +19,18 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 const Dashboard = () => {
   const [forms, setForms] = useState<Form[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedFormResponses, setSelectedFormResponses] = useState<FormSubmission[]>([]);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -32,26 +40,8 @@ const Dashboard = () => {
 
   const fetchForms = async () => {
     try {
-      const { data: formData, error } = await supabase
-        .from("forms")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-
-      // Transform the data to ensure form_schema is properly typed
-      const transformedForms: Form[] = (formData || []).map(form => ({
-        ...form,
-        form_schema: (Array.isArray(form.form_schema) 
-          ? form.form_schema as FormBlockJson[]
-          : []
-        ).map(block => ({
-          ...block,
-          type: block.type as FormBlock["type"],
-        })) as FormBlock[],
-      }));
-
-      setForms(transformedForms);
+      const formData = await getForms();
+      setForms(formData);
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -63,15 +53,22 @@ const Dashboard = () => {
     }
   };
 
+  const viewFormResponses = async (formId: string) => {
+    try {
+      const responses = await getFormResponses(formId);
+      setSelectedFormResponses(responses);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load form responses",
+      });
+    }
+  };
+
   const deleteForm = async (formId: string) => {
     try {
-      const { error } = await supabase
-        .from("forms")
-        .delete()
-        .eq("id", formId);
-
-      if (error) throw error;
-
+      await deleteForm(formId);
       setForms(forms.filter(form => form.id !== formId));
       toast({
         title: "Success",
@@ -87,7 +84,6 @@ const Dashboard = () => {
   };
 
   const copyFormLink = (formId: string) => {
-    // Use consistent path format
     const formLink = `${window.location.origin}/form/${formId}`;
     navigator.clipboard.writeText(formLink);
     toast({
@@ -145,6 +141,48 @@ const Dashboard = () => {
                 </div>
               </CardContent>
               <CardFooter className="mt-auto flex justify-end gap-2">
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => viewFormResponses(form.id)}
+                    >
+                      <FileText className="h-4 w-4" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Form Responses - {form.title}</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      {selectedFormResponses.length === 0 ? (
+                        <p className="text-center text-muted-foreground py-4">
+                          No responses yet
+                        </p>
+                      ) : (
+                        selectedFormResponses.map((response, index) => (
+                          <Card key={response.id} className="p-4">
+                            <div className="flex justify-between items-start mb-2">
+                              <h4 className="font-medium">Response #{index + 1}</h4>
+                              <span className="text-sm text-muted-foreground">
+                                {new Date(response.created_at!).toLocaleString()}
+                              </span>
+                            </div>
+                            <div className="space-y-2">
+                              {Object.entries(response.data as Record<string, any>).map(([key, value]) => (
+                                <div key={key} className="grid grid-cols-2 gap-2">
+                                  <span className="font-medium">{key}:</span>
+                                  <span>{String(value)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </Card>
+                        ))
+                      )}
+                    </div>
+                  </DialogContent>
+                </Dialog>
                 <Button 
                   variant="outline" 
                   size="sm"

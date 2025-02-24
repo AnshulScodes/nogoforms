@@ -114,6 +114,7 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
       const builder = new FormBuilderSDK({
         title: formTitle,
         description: formDescription,
+        id: formId,
       });
 
       elements.forEach(element => {
