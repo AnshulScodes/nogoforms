@@ -2,7 +2,8 @@
 import { useEffect, useState } from "react";
 import FormPreview from "@/components/form-builder/FormPreview";
 import { supabase } from "@/integrations/supabase/client";
-import type { Form } from "@/types/forms";
+import type { Form, FormBlockJson } from "@/types/forms";
+import type { FormBlock } from "@/sdk/FormBlockSDK";
 
 const FormEmbed = () => {
   const [form, setForm] = useState<Form | null>(null);
@@ -21,7 +22,15 @@ const FormEmbed = () => {
         .single();
 
       if (!error && data) {
-        setForm(data as Form);
+        // Convert the form_schema from Json to FormBlock[]
+        const formData: Form = {
+          ...data,
+          form_schema: (data.form_schema as FormBlockJson[]).map(block => ({
+            ...block,
+            type: block.type as FormBlock["type"],
+          })) as FormBlock[]
+        };
+        setForm(formData);
       }
     };
 
