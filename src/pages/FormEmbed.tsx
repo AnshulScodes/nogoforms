@@ -7,40 +7,59 @@ import type { FormBlock } from "@/sdk/FormBlockSDK";
 
 const FormEmbed = () => {
   const [form, setForm] = useState<Form | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadForm = async () => {
-      // Get the form ID from the URL parameter
-      const formId = new URLSearchParams(window.location.search).get('id');
-      if (!formId) return;
+      try {
+        // Get form ID from URL
+        const formId = new URLSearchParams(window.location.search).get('id');
+        if (!formId) {
+          console.error('No form ID provided');
+          return;
+        }
 
-      // Fetch the form directly, no auth needed
-      const { data, error } = await supabase
-        .from("forms")
-        .select("*")
-        .eq("id", formId)
-        .single();
+        // Fetch form data
+        const { data, error } = await supabase
+          .from("forms")
+          .select("*")
+          .eq("id", formId)
+          .single();
 
-      if (!error && data) {
-        // Convert the form_schema from Json to FormBlock[]
-        const formData: Form = {
-          ...data,
-          form_schema: (data.form_schema as FormBlockJson[]).map(block => ({
-            ...block,
-            type: block.type as FormBlock["type"],
-          })) as FormBlock[]
-        };
-        setForm(formData);
+        if (error) {
+          console.error('Error loading form:', error);
+          return;
+        }
+
+        if (data) {
+          // Convert form_schema from JSON to FormBlock[]
+          const formData: Form = {
+            ...data,
+            form_schema: (data.form_schema as FormBlockJson[]).map(block => ({
+              ...block,
+              type: block.type as FormBlock["type"],
+            })) as FormBlock[]
+          };
+          setForm(formData);
+        }
+      } catch (err) {
+        console.error('Failed to load form:', err);
+      } finally {
+        setLoading(false);
       }
     };
 
     loadForm();
   }, []);
 
-  if (!form) return null;
+  if (loading) return <div>Loading...</div>;
+  if (!form) return <div>Form not found</div>;
 
-  // Just the form, nothing else
-  return <FormPreview blocks={form.form_schema} formId={form.id} />;
+  return (
+    <div className="max-w-2xl mx-auto p-4">
+      <FormPreview blocks={form.form_schema} formId={form.id} />
+    </div>
+  );
 };
 
 export default FormEmbed;

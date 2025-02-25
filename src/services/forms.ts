@@ -111,6 +111,7 @@ export async function deleteForm(id: string) {
 }
 
 export async function submitFormResponse(formId: string, data: any) {
+  console.log('Submitting form response:', { formId, data });
   const { error } = await supabase
     .from("form_submissions")
     .insert({
@@ -126,6 +127,8 @@ export async function submitFormResponse(formId: string, data: any) {
     console.error("Form submission error:", error);
     throw error;
   }
+
+  console.log('Form response submitted successfully');
 }
 
 export async function getFormResponses(formId: string) {
