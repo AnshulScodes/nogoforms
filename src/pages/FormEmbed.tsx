@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Toaster } from "@/components/ui/toaster";
 import {
   Select,
   SelectContent,
@@ -16,7 +17,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { submitFormResponse } from "@/services/forms";
 import { useToast } from "@/hooks/use-toast";
 
 export default function FormEmbed() {
@@ -52,6 +52,63 @@ export default function FormEmbed() {
     loadForm();
   }, []);
 
+  const handleInputChange = (blockId: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [blockId]: value
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!form) return;
+
+    try {
+      setIsSubmitting(true);
+      console.log("Submitting form data:", formData);
+      
+      const { error } = await supabase
+        .from("form_submissions")
+        .insert({
+          form_id: form.id,
+          data: formData,
+          metadata: {
+            submitted_at: new Date().toISOString(),
+            user_agent: navigator.userAgent,
+          },
+        });
+
+      if (error) {
+        console.error("Form submission error:", error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to submit form. Please try again.",
+        });
+        return;
+      }
+
+      toast({
+        title: "Success!",
+        description: "Your response has been submitted. Thank you!",
+      });
+      
+      // Reset form after successful submission
+      setFormData({});
+      
+    } catch (error) {
+      console.error("Form submission error:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -68,43 +125,9 @@ export default function FormEmbed() {
     );
   }
 
-  const handleInputChange = (blockId: string, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [blockId]: value
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    try {
-      setIsSubmitting(true);
-      await submitFormResponse(form.id, formData);
-      toast({
-        title: "Thank you!",
-        description: "Your response has been submitted.",
-      });
-      setFormData({}); // Reset form
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to submit form. Please try again.",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const validateRequired = () => {
-    return form.form_schema
-      .filter(block => block.required)
-      .every(block => formData[block.id]);
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      <Toaster />
       <div className="w-full max-w-xl">
         <Card className="p-6">
           <h1 className="text-2xl font-semibold mb-6">{form.title}</h1>
@@ -184,7 +207,7 @@ export default function FormEmbed() {
             <Button 
               type="submit" 
               className="w-full"
-              disabled={isSubmitting || !validateRequired()}
+              disabled={isSubmitting}
             >
               {isSubmitting ? 'Submitting...' : 'Submit'}
             </Button>
