@@ -1,4 +1,3 @@
-
 import type { Form, FormBlockJson } from "@/types/forms";
 import type { Json } from "@/types/database";
 import { FormBlockSDK, type FormBlock, type FormBlockConfig } from "./FormBlockSDK";
@@ -25,11 +24,13 @@ export class FormBuilderSDK {
       form_schema: [],
       status: "draft",
     };
+    console.log(`📝 Form builder initialized: "${config.title}" ${this.id ? `(ID: ${this.id})` : '(New)'}`);
   }
 
   public addBlock(blockConfig: FormBlockConfig): FormBuilderSDK {
     const block = new FormBlockSDK(blockConfig);
     this.blocks.push(block.toJSON() as FormBlock);
+    console.log(`➕ Added ${blockConfig.type} block: "${blockConfig.label}" 🧱`);
     return this;
   }
 
@@ -65,9 +66,12 @@ export class FormBuilderSDK {
   }
 
   public async save(): Promise<Form> {
+    console.log(`💾 Saving form "${this.form.title}"...`);
+    
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("User not authenticated");
 
+    // Format the form schema for the database
     const formSchema = this.blocks.map(block => ({
       ...block,
       type: block.type,
@@ -90,7 +94,7 @@ export class FormBuilderSDK {
     let response;
     
     if (this.id) {
-      // Update existing form
+      console.log(`📝 Updating existing form (ID: ${this.id})...`);
       const { data, error } = await supabase
         .from("forms")
         .update(formData)
@@ -98,21 +102,28 @@ export class FormBuilderSDK {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error(`❌ Failed to update form: ${error.message}`);
+        throw error;
+      }
       response = data;
+      console.log(`✅ Form updated successfully! 🎉`);
     } else {
-      // Create new form
+      console.log(`📝 Creating new form...`);
       const { data, error } = await supabase
         .from("forms")
         .insert(formData)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error(`❌ Failed to create form: ${error.message}`);
+        throw error;
+      }
       response = data;
+      console.log(`✅ Form created successfully! ID: ${response.id} 🎉`);
     }
 
-    // Convert the form_schema back to FormBlock[] type
     return {
       ...response,
       form_schema: (response.form_schema as FormBlockJson[]).map(block => ({

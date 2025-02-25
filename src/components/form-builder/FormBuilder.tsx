@@ -46,12 +46,15 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
 
   const loadForm = async (id: string) => {
     try {
+      console.log(`📂 Loading form (ID: ${id})...`);
       setLoading(true);
       const form = await getFormById(id);
       setElements(form.form_schema);
       setFormTitle(form.title);
       setFormDescription(form.description || "");
+      console.log(`✅ Form "${form.title}" loaded successfully! 📝`);
     } catch (error: any) {
+      console.error(`❌ Failed to load form: ${error.message}`);
       toast({
         variant: "destructive",
         title: "Error",
@@ -73,6 +76,7 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
   };
 
   const addElement = (type: FormBlock["type"]) => {
+    console.log(`➕ Adding new ${type} field...`);
     const builder = new FormBuilderSDK({ title: formTitle });
     
     const baseConfig: FormBlock = {
@@ -86,6 +90,7 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
 
     const block = builder.addBlock(baseConfig).toJSON();
     setElements([...elements, block.form_schema[0] as FormBlock]);
+    console.log(`✅ Added ${type} field successfully! 🧱`);
   };
 
   const updateElement = (index: number, updates: Partial<FormBlock>) => {
@@ -95,9 +100,12 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
   };
 
   const deleteElement = (index: number) => {
+    console.log(`🗑️ Deleting field at index ${index}...`);
     const newElements = [...elements];
+    const deletedElement = newElements[index];
     newElements.splice(index, 1);
     setElements(newElements);
+    console.log(`✅ Deleted "${deletedElement.label}" field 🗑️`);
   };
 
   const saveForm = async () => {
@@ -185,7 +193,7 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
               <Input
                 value={formTitle}
                 onChange={(e) => setFormTitle(e.target.value)}
-                className="text-2xl font-semibold h-auto text-xl px-0 border-0 focus-visible:ring-0 w-[300px]"
+                className="text-2xl font-semibold h-auto px-0 border-0 focus-visible:ring-0 w-[300px]"
                 placeholder="Enter form title..."
               />
               <Input

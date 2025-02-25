@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import type { Form, FormBlockJson } from "@/types/forms";
 import type { Json } from "@/types/database";
@@ -102,8 +101,13 @@ export async function getFormById(id: string) {
 }
 
 export async function deleteForm(id: string) {
+  console.log(`🗑️ Deleting form (ID: ${id})...`);
   const { error } = await supabase.from("forms").delete().eq("id", id);
-  if (error) throw error;
+  if (error) {
+    console.error(`❌ Failed to delete form: ${error.message}`);
+    throw error;
+  }
+  console.log(`✅ Form deleted successfully! 🗑️`);
 }
 
 export async function submitFormResponse(formId: string, data: any) {

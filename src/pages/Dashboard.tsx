@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
@@ -66,15 +65,19 @@ const Dashboard = () => {
     }
   };
 
-  const deleteForm = async (formId: string) => {
+  const handleDeleteForm = async (formId: string) => {
     try {
+      console.log(`🗑️ Processing form deletion (ID: ${formId})...`);
       await deleteForm(formId);
+      // Update local state after successful deletion
       setForms(forms.filter(form => form.id !== formId));
       toast({
         title: "Success",
         description: "Form deleted successfully",
       });
+      console.log(`✅ Form removed from dashboard`);
     } catch (error: any) {
+      console.error(`❌ Delete operation failed: ${error.message}`);
       toast({
         variant: "destructive",
         title: "Error",
@@ -220,7 +223,7 @@ const Dashboard = () => {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => deleteForm(form.id)}>
+                      <AlertDialogAction onClick={() => handleDeleteForm(form.id)}>
                         Delete
                       </AlertDialogAction>
                     </AlertDialogFooter>
