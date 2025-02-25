@@ -8,42 +8,46 @@ import type { FormBlock } from "@/sdk/FormBlockSDK";
 const FormEmbed = () => {
   const [form, setForm] = useState<Form | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadForm = async () => {
       try {
-        // Get form ID from URL
         const formId = new URLSearchParams(window.location.search).get('id');
         if (!formId) {
-          console.error('No form ID provided');
+          setError('No form ID provided');
           return;
         }
 
-        // Fetch form data
-        const { data, error } = await supabase
+        const { data, error: fetchError } = await supabase
           .from("forms")
           .select("*")
           .eq("id", formId)
           .single();
 
-        if (error) {
-          console.error('Error loading form:', error);
+        if (fetchError) {
+          console.error('Error loading form:', fetchError);
+          setError('Failed to load form');
           return;
         }
 
-        if (data) {
-          // Convert form_schema from JSON to FormBlock[]
-          const formData: Form = {
-            ...data,
-            form_schema: (data.form_schema as FormBlockJson[]).map(block => ({
-              ...block,
-              type: block.type as FormBlock["type"],
-            })) as FormBlock[]
-          };
-          setForm(formData);
+        if (!data) {
+          setError('Form not found');
+          return;
         }
+
+        const formData: Form = {
+          ...data,
+          form_schema: (data.form_schema as FormBlockJson[]).map(block => ({
+            ...block,
+            type: block.type as FormBlock["type"],
+          })) as FormBlock[]
+        };
+        setForm(formData);
+
       } catch (err) {
         console.error('Failed to load form:', err);
+        setError('An unexpected error occurred');
       } finally {
         setLoading(false);
       }
@@ -52,12 +56,28 @@ const FormEmbed = () => {
     loadForm();
   }, []);
 
-  if (loading) return <div>Loading...</div>;
-  if (!form) return <div>Form not found</div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-pulse text-gray-600">Loading form...</div>
+      </div>
+    );
+  }
+
+  if (error || !form) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-red-500">{error || 'Form not found'}</div>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-2xl mx-auto p-4">
-      <FormPreview blocks={form.form_schema} formId={form.id} />
+    <div className="max-w-2xl mx-auto p-4 min-h-screen">
+      <FormPreview 
+        blocks={form.form_schema} 
+        formId={form.id}
+      />
     </div>
   );
 };
