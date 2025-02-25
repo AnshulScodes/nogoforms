@@ -1,56 +1,52 @@
 
 import { useEffect, useState } from "react";
-import FormPreview from "@/components/form-builder/FormPreview";
 import { supabase } from "@/integrations/supabase/client";
 import type { Form, FormBlockJson } from "@/types/forms";
 import type { FormBlock } from "@/sdk/FormBlockSDK";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { submitFormResponse } from "@/services/forms";
+import { useToast } from "@/hooks/use-toast";
 
-const FormEmbed = () => {
+export default function FormEmbed() {
   const [form, setForm] = useState<Form | null>(null);
+  const [formData, setFormData] = useState<Record<string, any>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     const loadForm = async () => {
-      try {
-        const formId = new URLSearchParams(window.location.search).get('id');
-        if (!formId) {
-          setError('No form ID provided');
-          return;
-        }
+      const formId = new URLSearchParams(window.location.search).get('id');
+      if (!formId) return;
 
-        const { data, error: fetchError } = await supabase
-          .from("forms")
-          .select("*")
-          .eq("id", formId)
-          .single();
+      const { data } = await supabase
+        .from("forms")
+        .select("*")
+        .eq("id", formId)
+        .single();
 
-        if (fetchError) {
-          console.error('Error loading form:', fetchError);
-          setError('Failed to load form');
-          return;
-        }
-
-        if (!data) {
-          setError('Form not found');
-          return;
-        }
-
-        const formData: Form = {
+      if (data) {
+        setForm({
           ...data,
           form_schema: (data.form_schema as FormBlockJson[]).map(block => ({
             ...block,
             type: block.type as FormBlock["type"],
-          })) as FormBlock[]
-        };
-        setForm(formData);
-
-      } catch (err) {
-        console.error('Failed to load form:', err);
-        setError('An unexpected error occurred');
-      } finally {
-        setLoading(false);
+          }))
+        });
       }
+      setLoading(false);
     };
 
     loadForm();
@@ -59,27 +55,142 @@ const FormEmbed = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse text-gray-600">Loading form...</div>
+        <div className="text-gray-600">Loading...</div>
       </div>
     );
   }
 
-  if (error || !form) {
+  if (!form) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-red-500">{error || 'Form not found'}</div>
+        <div className="text-red-500">Form not found</div>
       </div>
     );
   }
 
+  const handleInputChange = (blockId: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [blockId]: value
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      setIsSubmitting(true);
+      await submitFormResponse(form.id, formData);
+      toast({
+        title: "Thank you!",
+        description: "Your response has been submitted.",
+      });
+      setFormData({}); // Reset form
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to submit form. Please try again.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const validateRequired = () => {
+    return form.form_schema
+      .filter(block => block.required)
+      .every(block => formData[block.id]);
+  };
+
   return (
-    <div className="max-w-2xl mx-auto p-4 min-h-screen">
-      <FormPreview 
-        blocks={form.form_schema} 
-        formId={form.id}
-      />
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      <div className="w-full max-w-xl">
+        <Card className="p-6">
+          <h1 className="text-2xl font-semibold mb-6">{form.title}</h1>
+          {form.description && (
+            <p className="text-gray-600 mb-6">{form.description}</p>
+          )}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {form.form_schema.map((block) => (
+              <div key={block.id} className="space-y-2">
+                <Label>
+                  {block.label}
+                  {block.required && <span className="text-red-500 ml-1">*</span>}
+                </Label>
+                
+                {['text', 'email', 'number'].includes(block.type) && (
+                  <Input
+                    type={block.type}
+                    placeholder={block.placeholder}
+                    required={block.required}
+                    value={formData[block.id] || ''}
+                    onChange={(e) => handleInputChange(block.id, e.target.value)}
+                  />
+                )}
+
+                {block.type === 'select' && (
+                  <Select
+                    value={formData[block.id] || ''}
+                    onValueChange={(value) => handleInputChange(block.id, value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={block.placeholder} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {block.options?.map((option) => (
+                        <SelectItem key={option} value={option}>
+                          {option}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+
+                {block.type === 'checkbox' && (
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id={block.id}
+                      checked={formData[block.id] || false}
+                      onCheckedChange={(checked) => handleInputChange(block.id, checked)}
+                      required={block.required}
+                    />
+                    <label
+                      htmlFor={block.id}
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      {block.placeholder || block.label}
+                    </label>
+                  </div>
+                )}
+
+                {block.type === 'radio' && (
+                  <RadioGroup
+                    value={formData[block.id] || ''}
+                    onValueChange={(value) => handleInputChange(block.id, value)}
+                    required={block.required}
+                  >
+                    {block.options?.map((option) => (
+                      <div key={option} className="flex items-center space-x-2">
+                        <RadioGroupItem value={option} id={`${block.id}-${option}`} />
+                        <Label htmlFor={`${block.id}-${option}`}>{option}</Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                )}
+              </div>
+            ))}
+
+            <Button 
+              type="submit" 
+              className="w-full"
+              disabled={isSubmitting || !validateRequired()}
+            >
+              {isSubmitting ? 'Submitting...' : 'Submit'}
+            </Button>
+          </form>
+        </Card>
+      </div>
     </div>
   );
-};
-
-export default FormEmbed;
+}
