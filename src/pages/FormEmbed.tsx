@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { submitFormResponse } from "@/services/forms";
 
 export default function FormEmbed() {
   const [form, setForm] = useState<Form | null>(null);
@@ -28,29 +29,48 @@ export default function FormEmbed() {
 
   useEffect(() => {
     const loadForm = async () => {
-      const formId = new URLSearchParams(window.location.search).get('id');
-      if (!formId) return;
+      try {
+        const formId = new URLSearchParams(window.location.search).get('id');
+        if (!formId) {
+          setLoading(false);
+          return;
+        }
 
-      const { data } = await supabase
-        .from("forms")
-        .select("*")
-        .eq("id", formId)
-        .single();
+        console.log('Loading form:', formId);
+        const { data, error } = await supabase
+          .from("forms")
+          .select("*")
+          .eq("id", formId)
+          .single();
 
-      if (data) {
-        setForm({
-          ...data,
-          form_schema: (data.form_schema as FormBlockJson[]).map(block => ({
-            ...block,
-            type: block.type as FormBlock["type"],
-          }))
-        });
+        if (error) {
+          console.error('Error loading form:', error);
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to load form",
+          });
+          return;
+        }
+
+        if (data) {
+          setForm({
+            ...data,
+            form_schema: (data.form_schema as FormBlockJson[]).map(block => ({
+              ...block,
+              type: block.type as FormBlock["type"],
+            }))
+          });
+        }
+      } catch (err) {
+        console.error('Failed to load form:', err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     loadForm();
-  }, []);
+  }, [toast]);
 
   const handleInputChange = (blockId: string, value: any) => {
     setFormData(prev => ({
@@ -66,43 +86,26 @@ export default function FormEmbed() {
 
     try {
       setIsSubmitting(true);
-      console.log("Submitting form data:", formData);
+      await submitFormResponse(form.id, formData);
       
-      const { error } = await supabase
-        .from("form_submissions")
-        .insert({
-          form_id: form.id,
-          data: formData,
-          metadata: {
-            submitted_at: new Date().toISOString(),
-            user_agent: navigator.userAgent,
-          },
-        });
-
-      if (error) {
-        console.error("Form submission error:", error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to submit form. Please try again.",
-        });
-        return;
-      }
-
       toast({
-        title: "Success!",
+        title: "Success! 🎉",
         description: "Your response has been submitted. Thank you!",
       });
       
-      // Reset form after successful submission
+      // Reset form
       setFormData({});
+      
+      // Reset all form elements
+      const formElement = e.target as HTMLFormElement;
+      formElement.reset();
       
     } catch (error) {
       console.error("Form submission error:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "An unexpected error occurred. Please try again.",
+        description: "Failed to submit form. Please try again.",
       });
     } finally {
       setIsSubmitting(false);
@@ -112,6 +115,7 @@ export default function FormEmbed() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
+        <Toaster />
         <div className="text-gray-600">Loading...</div>
       </div>
     );
@@ -120,10 +124,17 @@ export default function FormEmbed() {
   if (!form) {
     return (
       <div className="min-h-screen flex items-center justify-center">
+        <Toaster />
         <div className="text-red-500">Form not found</div>
       </div>
     );
   }
+
+  const validateRequired = () => {
+    return form.form_schema
+      .filter(block => block.required)
+      .every(block => formData[block.id]);
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
@@ -207,7 +218,7 @@ export default function FormEmbed() {
             <Button 
               type="submit" 
               className="w-full"
-              disabled={isSubmitting}
+              disabled={isSubmitting || !validateRequired()}
             >
               {isSubmitting ? 'Submitting...' : 'Submit'}
             </Button>
