@@ -11,6 +11,7 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/Dashboard";
 import FormBuilder from "./components/form-builder/FormBuilder";
+import PublicFormView from "./pages/PublicFormView";
 
 const queryClient = new QueryClient();
 
@@ -51,9 +52,7 @@ const App = () => (
           <Route
             path="/form/:formId"
             element={
-              <AuthGuard>
-                <FormBuilder preview />
-              </AuthGuard>
+              <PublicFormView />
             }
           />
           <Route path="*" element={<NotFound />} />
