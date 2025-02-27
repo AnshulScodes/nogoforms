@@ -111,8 +111,8 @@ export async function deleteForm(id: string) {
   console.log(`✅ Form deleted successfully! 🗑️`);
 }
 
-export async function submitFormResponse(formId: string, data: any) {
-  console.log('Submitting form response:', { formId, data });
+export async function submitFormResponse(formId: string, data: any, customMetadata: any = {}) {
+  console.log('Submitting form response:', { formId, data, customMetadata });
   
   // Validate the formId is a valid UUID
   if (!formId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(formId)) {
@@ -126,13 +126,19 @@ export async function submitFormResponse(formId: string, data: any) {
     throw new Error('Invalid form data');
   }
 
+  // Create comprehensive metadata
+  const metadata = {
+    submitted_at: new Date().toISOString(),
+    user_agent: navigator.userAgent,
+    ip_address: null, // This will be null on client-side for privacy
+    locale: navigator.language,
+    ...customMetadata
+  };
+
   const submission = {
     form_id: formId,
     data,
-    metadata: {
-      submitted_at: new Date().toISOString(),
-      user_agent: navigator.userAgent,
-    },
+    metadata,
   };
   
   console.log('Preparing to insert submission:', submission);
