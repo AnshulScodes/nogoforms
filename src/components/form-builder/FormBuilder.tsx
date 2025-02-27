@@ -159,12 +159,12 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
   const copyEmbedCode = () => {
     if (!formId) return;
     
-    const embedCode = `<iframe src="${window.location.origin}/form/${formId}" width="100%" height="600" frameborder="0"></iframe>`;
+    const embedCode = `<iframe src="${window.location.origin}/form/${formId}?userId=USER_ID&userName=USER_NAME&userEmail=USER_EMAIL" width="100%" height="600" frameborder="0"></iframe>`;
     navigator.clipboard.writeText(embedCode);
     
     toast({
       title: "Copied!",
-      description: "Embed code copied to clipboard",
+      description: "Embed code copied to clipboard. Replace USER_ID, USER_NAME, and USER_EMAIL with your user's information.",
     });
   };
 
@@ -176,7 +176,7 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
     
     toast({
       title: "Copied!",
-      description: "Form link copied to clipboard",
+      description: "Form link copied to clipboard. Add ?userId=123&userName=John to pass user information.",
     });
   };
 

@@ -3,10 +3,10 @@ import { useState, useEffect } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { getFormById } from "@/services/forms";
 import type { Form } from "@/types/forms";
-import FormPreview from "@/components/form-builder/FormPreview";
 import { Toaster } from "@/components/ui/toaster";
+import FormPreview from "@/components/form-builder/FormPreview";
 
-export default function FormEmbed() {
+export default function PublicFormView() {
   const { formId } = useParams<{ formId: string }>();
   const [searchParams] = useSearchParams();
   const [form, setForm] = useState<Form | null>(null);
@@ -37,7 +37,7 @@ export default function FormEmbed() {
       }
 
       try {
-        console.log(`Loading embed form (ID: ${formId})...`);
+        console.log(`Loading public form (ID: ${formId})...`);
         const formData = await getFormById(formId);
         setForm(formData);
         console.log(`Form "${formData.title}" loaded successfully!`);
@@ -57,15 +57,20 @@ export default function FormEmbed() {
   }, [formId, searchParams]);
 
   if (loading) {
-    return <div className="p-4 text-center text-gray-600">Loading form...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Toaster />
+        <div className="text-gray-600">Loading form...</div>
+      </div>
+    );
   }
 
   if (error || !form) {
     return (
-      <div className="p-4 text-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Toaster />
-        <div className="bg-white rounded-lg shadow-sm p-4">
-          <h2 className="text-red-500">Error</h2>
+        <div className="max-w-md p-6 bg-white rounded-lg shadow-md">
+          <h1 className="text-xl font-semibold text-red-500 mb-2">Error</h1>
           <p className="text-gray-600">{error || "Form not found"}</p>
         </div>
       </div>
@@ -73,18 +78,24 @@ export default function FormEmbed() {
   }
 
   return (
-    <div className="p-4">
+    <div className="min-h-screen bg-gray-50 p-4">
       <Toaster />
-      <div>
-        <h1 className="text-xl font-semibold mb-2">{form.title}</h1>
-        {form.description && <p className="text-gray-600 mb-4">{form.description}</p>}
+      <div className="container mx-auto max-w-3xl">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold">{form.title}</h1>
+          {form.description && <p className="text-gray-600 mt-2">{form.description}</p>}
+        </div>
+        
+        <FormPreview 
+          blocks={form.form_schema} 
+          formId={form.id}
+          userInfo={userInfo}
+        />
+        
+        <div className="mt-8 text-center text-gray-500 text-sm">
+          Form powered by FormBuilder
+        </div>
       </div>
-      
-      <FormPreview 
-        blocks={form.form_schema} 
-        formId={form.id}
-        userInfo={userInfo}
-      />
     </div>
   );
 }

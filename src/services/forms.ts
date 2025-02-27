@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import type { Form, FormBlockJson } from "@/types/forms";
 import type { Json } from "@/types/database";
@@ -110,25 +111,50 @@ export async function deleteForm(id: string) {
   console.log(`✅ Form deleted successfully! 🗑️`);
 }
 
-export async function submitFormResponse(formId: string, data: any) {
-  console.log('Submitting form response:', { formId, data });
-  const { error } = await supabase
+export async function submitFormResponse(formId: string, data: any, customMetadata: any = {}) {
+  console.log('Submitting form response:', { formId, data, customMetadata });
+  
+  // Validate the formId is a valid UUID
+  if (!formId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(formId)) {
+    console.error('Invalid formId provided:', formId);
+    throw new Error('Invalid form ID');
+  }
+  
+  // Ensure data is a valid object
+  if (!data || typeof data !== 'object') {
+    console.error('Invalid data provided:', data);
+    throw new Error('Invalid form data');
+  }
+
+  // Create comprehensive metadata
+  const metadata = {
+    submitted_at: new Date().toISOString(),
+    user_agent: navigator.userAgent,
+    ip_address: null, // This will be null on client-side for privacy
+    locale: navigator.language,
+    ...customMetadata
+  };
+
+  const submission = {
+    form_id: formId,
+    data,
+    metadata,
+  };
+  
+  console.log('Preparing to insert submission:', submission);
+  
+  const { data: responseData, error } = await supabase
     .from("form_submissions")
-    .insert({
-      form_id: formId,
-      data,
-      metadata: {
-        submitted_at: new Date().toISOString(),
-        user_agent: navigator.userAgent,
-      },
-    });
+    .insert(submission)
+    .select();
 
   if (error) {
     console.error("Form submission error:", error);
     throw error;
   }
 
-  console.log('Form response submitted successfully');
+  console.log('Form response submitted successfully:', responseData);
+  return responseData;
 }
 
 export async function getFormResponses(formId: string) {
