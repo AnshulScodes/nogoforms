@@ -1,7 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { useParams, useSearchParams } from "react-router-dom";
 import { getFormById } from "@/services/forms";
 import type { Form } from "@/types/forms";
 import { Toaster } from "@/components/ui/toaster";
@@ -9,9 +8,25 @@ import FormPreview from "@/components/form-builder/FormPreview";
 
 export default function PublicFormView() {
   const { formId } = useParams<{ formId: string }>();
+  const [searchParams] = useSearchParams();
   const [form, setForm] = useState<Form | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Extract user info from URL parameters
+  const userInfo = {
+    userId: searchParams.get('userId') || undefined,
+    userName: searchParams.get('userName') || undefined,
+    userEmail: searchParams.get('userEmail') || undefined,
+    userCompany: searchParams.get('userCompany') || undefined,
+  };
+
+  // Extract any additional custom parameters
+  searchParams.forEach((value, key) => {
+    if (!['userId', 'userName', 'userEmail', 'userCompany'].includes(key)) {
+      (userInfo as any)[key] = value;
+    }
+  });
 
   useEffect(() => {
     async function loadForm() {
@@ -26,6 +41,10 @@ export default function PublicFormView() {
         const formData = await getFormById(formId);
         setForm(formData);
         console.log(`Form "${formData.title}" loaded successfully!`);
+        
+        if (Object.values(userInfo).some(val => val !== undefined)) {
+          console.log("User info provided via URL:", userInfo);
+        }
       } catch (err: any) {
         console.error("Failed to load form:", err);
         setError(err.message || "Failed to load form");
@@ -35,7 +54,7 @@ export default function PublicFormView() {
     }
 
     loadForm();
-  }, [formId]);
+  }, [formId, searchParams]);
 
   if (loading) {
     return (
@@ -69,7 +88,8 @@ export default function PublicFormView() {
         
         <FormPreview 
           blocks={form.form_schema} 
-          formId={form.id} 
+          formId={form.id}
+          userInfo={userInfo}
         />
         
         <div className="mt-8 text-center text-gray-500 text-sm">

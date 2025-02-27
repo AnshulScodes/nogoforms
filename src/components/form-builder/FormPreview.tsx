@@ -16,20 +16,21 @@ import {
 } from "@/components/ui/select";
 import { submitFormResponse } from '@/services/forms';
 import type { FormBlock } from '@/sdk';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 interface FormPreviewProps {
   blocks: FormBlock[];
   formId?: string;
+  userInfo?: {
+    userId?: string;
+    userName?: string;
+    userEmail?: string;
+    userCompany?: string;
+    [key: string]: any; // Allow any additional user metadata
+  };
 }
 
-const FormPreview: React.FC<FormPreviewProps> = ({ blocks, formId }) => {
+const FormPreview: React.FC<FormPreviewProps> = ({ blocks, formId, userInfo = {} }) => {
   const [formData, setFormData] = useState<Record<string, any>>({});
-  const [userInfo, setUserInfo] = useState({
-    name: '',
-    email: '',
-    organization: ''
-  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const { toast } = useToast();
@@ -41,13 +42,6 @@ const FormPreview: React.FC<FormPreviewProps> = ({ blocks, formId }) => {
     }));
     // Reset submitted state when form is modified
     if (submitted) setSubmitted(false);
-  };
-
-  const handleUserInfoChange = (field: keyof typeof userInfo, value: string) => {
-    setUserInfo(prev => ({
-      ...prev,
-      [field]: value
-    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -80,7 +74,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({ blocks, formId }) => {
         submitted_at: new Date().toISOString(),
         user_agent: navigator.userAgent,
         screen_size: `${window.innerWidth}x${window.innerHeight}`,
-        user_info: { ...userInfo },
+        user_info: userInfo,
         referrer: document.referrer || 'direct'
       };
       
@@ -95,7 +89,6 @@ const FormPreview: React.FC<FormPreviewProps> = ({ blocks, formId }) => {
       
       setSubmitted(true);
       setFormData({}); // Reset form
-      setUserInfo({ name: '', email: '', organization: '' }); // Reset user info
     } catch (error: any) {
       console.error("Form submission error:", error);
       toast({
@@ -196,44 +189,6 @@ const FormPreview: React.FC<FormPreviewProps> = ({ blocks, formId }) => {
               )}
             </div>
           ))}
-
-          <Accordion type="single" collapsible className="border rounded-md">
-            <AccordionItem value="user-info">
-              <AccordionTrigger className="px-4">
-                <span className="text-sm">Your Information (Optional)</span>
-              </AccordionTrigger>
-              <AccordionContent className="px-4 pb-4 space-y-3">
-                <div>
-                  <Label htmlFor="user-name">Name</Label>
-                  <Input
-                    id="user-name"
-                    value={userInfo.name}
-                    onChange={(e) => handleUserInfoChange('name', e.target.value)}
-                    placeholder="Your name"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="user-email">Email</Label>
-                  <Input
-                    id="user-email"
-                    type="email"
-                    value={userInfo.email}
-                    onChange={(e) => handleUserInfoChange('email', e.target.value)}
-                    placeholder="Your email address"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="user-org">Organization</Label>
-                  <Input
-                    id="user-org"
-                    value={userInfo.organization}
-                    onChange={(e) => handleUserInfoChange('organization', e.target.value)}
-                    placeholder="Your organization or company"
-                  />
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
 
           <Button 
             type="submit" 
