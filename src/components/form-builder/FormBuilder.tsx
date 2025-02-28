@@ -1,3 +1,4 @@
+
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -5,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Copy, Link, Trash2, Settings } from "lucide-react";
+import { Plus, Copy, Link, Trash2, Settings, Image } from "lucide-react";
 import { FormBuilderSDK, type FormBlock } from "@/sdk";
 import { useToast } from "@/hooks/use-toast";
 import FormPreview from "./FormPreview";
@@ -14,6 +15,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -23,11 +25,48 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 
 interface FormBuilderProps {
   preview?: boolean;
 }
+
+// Group field types for better organization
+const FIELD_GROUPS = {
+  basic: ["text", "email", "number", "textarea"],
+  choice: ["select", "checkbox", "radio"],
+  advanced: ["date", "time", "tel", "url", "file", "range", "color", "password"],
+  layout: ["heading", "paragraph"]
+};
+
+// Predefined image examples
+const IMAGE_EXAMPLES = [
+  {
+    name: "User Profile",
+    src: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=100&q=80"
+  },
+  {
+    name: "Computer",
+    src: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?auto=format&fit=crop&w=100&q=80"
+  },
+  {
+    name: "Light Bulb",
+    src: "https://images.unsplash.com/photo-1581090464777-f3220bbe1b8b?auto=format&fit=crop&w=100&q=80"
+  },
+  {
+    name: "Fun",
+    src: "https://images.unsplash.com/photo-1501286353178-1ec881214838?auto=format&fit=crop&w=100&q=80"
+  }
+];
 
 const FormBuilder = ({ preview = false }: FormBuilderProps) => {
   const [elements, setElements] = useState<FormBlock[]>([]);
@@ -79,13 +118,25 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
     console.log(`➕ Adding new ${type} field...`);
     const builder = new FormBuilderSDK({ title: formTitle });
     
+    let label = `New ${type} field`;
+    let placeholder = `Enter ${type}...`;
+    
+    // Customize label and placeholder based on field type
+    if (type === "heading") {
+      label = "Section Heading";
+      placeholder = "";
+    } else if (type === "paragraph") {
+      label = "This is a paragraph text to provide additional information to your form users.";
+      placeholder = "";
+    }
+    
     const baseConfig: FormBlock = {
       id: crypto.randomUUID(),
       type,
-      label: `New ${type} field`,
-      placeholder: `Enter ${type}...`,
+      label,
+      placeholder,
       required: false,
-      options: type === "select" || type === "radio" ? ["Option 1", "Option 2", "Option 3"] : undefined
+      options: ["select", "radio"].includes(type) ? ["Option 1", "Option 2", "Option 3"] : undefined
     };
 
     const block = builder.addBlock(baseConfig).toJSON();
@@ -212,25 +263,37 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
                       Add Field
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    <DropdownMenuItem onClick={() => addElement("text")}>
-                      Text Field
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => addElement("email")}>
-                      Email Field
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => addElement("number")}>
-                      Number Field
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => addElement("select")}>
-                      Select Field
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => addElement("checkbox")}>
-                      Checkbox
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => addElement("radio")}>
-                      Radio Buttons
-                    </DropdownMenuItem>
+                  <DropdownMenuContent className="w-56">
+                    <DropdownMenuItem disabled className="font-semibold">Basic Fields</DropdownMenuItem>
+                    {FIELD_GROUPS.basic.map((type) => (
+                      <DropdownMenuItem key={type} onClick={() => addElement(type as FormBlock["type"])}>
+                        {type.charAt(0).toUpperCase() + type.slice(1)} Field
+                      </DropdownMenuItem>
+                    ))}
+                    
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem disabled className="font-semibold">Choice Fields</DropdownMenuItem>
+                    {FIELD_GROUPS.choice.map((type) => (
+                      <DropdownMenuItem key={type} onClick={() => addElement(type as FormBlock["type"])}>
+                        {type.charAt(0).toUpperCase() + type.slice(1)} Field
+                      </DropdownMenuItem>
+                    ))}
+                    
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem disabled className="font-semibold">Advanced Fields</DropdownMenuItem>
+                    {FIELD_GROUPS.advanced.map((type) => (
+                      <DropdownMenuItem key={type} onClick={() => addElement(type as FormBlock["type"])}>
+                        {type.charAt(0).toUpperCase() + type.slice(1)} Field
+                      </DropdownMenuItem>
+                    ))}
+                    
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem disabled className="font-semibold">Layout Elements</DropdownMenuItem>
+                    {FIELD_GROUPS.layout.map((type) => (
+                      <DropdownMenuItem key={type} onClick={() => addElement(type as FormBlock["type"])}>
+                        {type.charAt(0).toUpperCase() + type.slice(1)}
+                      </DropdownMenuItem>
+                    ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
                 
@@ -266,7 +329,7 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
                 <div
                   {...provided.droppableProps}
                   ref={provided.innerRef}
-                  className="space-y-4"
+                  className="space-y-4 mt-6"
                 >
                   {elements.map((element, index) => (
                     <Draggable
@@ -296,44 +359,326 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
                                       <Settings className="h-4 w-4" />
                                     </Button>
                                   </DialogTrigger>
-                                  <DialogContent>
+                                  <DialogContent className="max-w-2xl">
                                     <DialogHeader>
                                       <DialogTitle>Field Settings</DialogTitle>
                                     </DialogHeader>
-                                    <div className="space-y-4 py-4">
-                                      <div className="space-y-2">
-                                        <Label>Field Type</Label>
-                                        <Select
-                                          value={element.type}
-                                          onValueChange={(value: FormBlock["type"]) =>
-                                            updateElement(index, { type: value })
-                                          }
-                                        >
-                                          <SelectTrigger>
-                                            <SelectValue />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            <SelectItem value="text">Text</SelectItem>
-                                            <SelectItem value="email">Email</SelectItem>
-                                            <SelectItem value="number">Number</SelectItem>
-                                            <SelectItem value="select">Select</SelectItem>
-                                            <SelectItem value="checkbox">Checkbox</SelectItem>
-                                            <SelectItem value="radio">Radio</SelectItem>
-                                          </SelectContent>
-                                        </Select>
-                                      </div>
-                                      <div className="space-y-2">
-                                        <Label>Placeholder</Label>
-                                        <Input
-                                          value={element.placeholder || ""}
-                                          onChange={(e) =>
-                                            updateElement(index, {
-                                              placeholder: e.target.value,
-                                            })
-                                          }
-                                        />
-                                      </div>
-                                    </div>
+                                    <Tabs defaultValue="basic">
+                                      <TabsList className="w-full">
+                                        <TabsTrigger value="basic">Basic Settings</TabsTrigger>
+                                        <TabsTrigger value="validation">Validation</TabsTrigger>
+                                        <TabsTrigger value="appearance">Appearance</TabsTrigger>
+                                      </TabsList>
+                                      
+                                      <TabsContent value="basic" className="space-y-4 py-4">
+                                        <div className="space-y-2">
+                                          <Label>Field Type</Label>
+                                          <Select
+                                            value={element.type}
+                                            onValueChange={(value: FormBlock["type"]) =>
+                                              updateElement(index, { type: value })
+                                            }
+                                          >
+                                            <SelectTrigger>
+                                              <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value="text">Text</SelectItem>
+                                              <SelectItem value="email">Email</SelectItem>
+                                              <SelectItem value="number">Number</SelectItem>
+                                              <SelectItem value="textarea">Textarea</SelectItem>
+                                              <SelectItem value="select">Select</SelectItem>
+                                              <SelectItem value="checkbox">Checkbox</SelectItem>
+                                              <SelectItem value="radio">Radio</SelectItem>
+                                              <SelectItem value="date">Date</SelectItem>
+                                              <SelectItem value="time">Time</SelectItem>
+                                              <SelectItem value="tel">Phone</SelectItem>
+                                              <SelectItem value="url">URL</SelectItem>
+                                              <SelectItem value="password">Password</SelectItem>
+                                              <SelectItem value="file">File Upload</SelectItem>
+                                              <SelectItem value="range">Range Slider</SelectItem>
+                                              <SelectItem value="color">Color Picker</SelectItem>
+                                              <SelectItem value="heading">Heading</SelectItem>
+                                              <SelectItem value="paragraph">Paragraph</SelectItem>
+                                            </SelectContent>
+                                          </Select>
+                                        </div>
+                                        
+                                        {!["heading", "paragraph"].includes(element.type) && (
+                                          <div className="space-y-2">
+                                            <Label>Placeholder</Label>
+                                            <Input
+                                              value={element.placeholder || ""}
+                                              onChange={(e) =>
+                                                updateElement(index, {
+                                                  placeholder: e.target.value,
+                                                })
+                                              }
+                                            />
+                                          </div>
+                                        )}
+                                        
+                                        {!["heading", "paragraph"].includes(element.type) && (
+                                          <div className="flex items-center space-x-2">
+                                            <Checkbox
+                                              id={`required-${element.id}`}
+                                              checked={element.required || false}
+                                              onCheckedChange={(checked) =>
+                                                updateElement(index, { required: !!checked })
+                                              }
+                                            />
+                                            <Label htmlFor={`required-${element.id}`}>Required field</Label>
+                                          </div>
+                                        )}
+                                        
+                                        {!["heading", "paragraph"].includes(element.type) && (
+                                          <div className="space-y-2">
+                                            <Label>Help Text (optional)</Label>
+                                            <Input
+                                              value={element.helpText || ""}
+                                              onChange={(e) =>
+                                                updateElement(index, {
+                                                  helpText: e.target.value,
+                                                })
+                                              }
+                                              placeholder="Additional information about this field"
+                                            />
+                                          </div>
+                                        )}
+                                        
+                                        {["select", "radio"].includes(element.type) && (
+                                          <div className="space-y-2">
+                                            <Label>Options (one per line)</Label>
+                                            <Textarea
+                                              value={(element.options || []).join("\n")}
+                                              onChange={(e) =>
+                                                updateElement(index, {
+                                                  options: e.target.value.split("\n").filter(Boolean),
+                                                })
+                                              }
+                                              placeholder="Option 1&#10;Option 2&#10;Option 3"
+                                              className="min-h-[100px]"
+                                            />
+                                          </div>
+                                        )}
+                                        
+                                        {!["heading", "paragraph", "checkbox", "radio"].includes(element.type) && (
+                                          <div className="space-y-2">
+                                            <Label>Default Value (optional)</Label>
+                                            <Input
+                                              value={element.defaultValue || ""}
+                                              onChange={(e) =>
+                                                updateElement(index, {
+                                                  defaultValue: e.target.value,
+                                                })
+                                              }
+                                              placeholder="Default value for this field"
+                                            />
+                                          </div>
+                                        )}
+                                      </TabsContent>
+                                      
+                                      <TabsContent value="validation" className="space-y-4 py-4">
+                                        {element.type === "number" && (
+                                          <>
+                                            <div className="grid grid-cols-2 gap-4">
+                                              <div className="space-y-2">
+                                                <Label>Minimum Value</Label>
+                                                <Input
+                                                  type="number"
+                                                  value={element.validation?.min || ""}
+                                                  onChange={(e) =>
+                                                    updateElement(index, {
+                                                      validation: {
+                                                        ...(element.validation || {}),
+                                                        min: e.target.value ? Number(e.target.value) : undefined,
+                                                      },
+                                                    })
+                                                  }
+                                                />
+                                              </div>
+                                              <div className="space-y-2">
+                                                <Label>Maximum Value</Label>
+                                                <Input
+                                                  type="number"
+                                                  value={element.validation?.max || ""}
+                                                  onChange={(e) =>
+                                                    updateElement(index, {
+                                                      validation: {
+                                                        ...(element.validation || {}),
+                                                        max: e.target.value ? Number(e.target.value) : undefined,
+                                                      },
+                                                    })
+                                                  }
+                                                />
+                                              </div>
+                                            </div>
+                                          </>
+                                        )}
+                                        
+                                        {["text", "textarea", "password", "tel", "url"].includes(element.type) && (
+                                          <>
+                                            <div className="grid grid-cols-2 gap-4">
+                                              <div className="space-y-2">
+                                                <Label>Minimum Length</Label>
+                                                <Input
+                                                  type="number"
+                                                  value={element.validation?.minLength || ""}
+                                                  onChange={(e) =>
+                                                    updateElement(index, {
+                                                      validation: {
+                                                        ...(element.validation || {}),
+                                                        minLength: e.target.value ? Number(e.target.value) : undefined,
+                                                      },
+                                                    })
+                                                  }
+                                                />
+                                              </div>
+                                              <div className="space-y-2">
+                                                <Label>Maximum Length</Label>
+                                                <Input
+                                                  type="number"
+                                                  value={element.validation?.maxLength || ""}
+                                                  onChange={(e) =>
+                                                    updateElement(index, {
+                                                      validation: {
+                                                        ...(element.validation || {}),
+                                                        maxLength: e.target.value ? Number(e.target.value) : undefined,
+                                                      },
+                                                    })
+                                                  }
+                                                />
+                                              </div>
+                                            </div>
+                                            
+                                            <div className="space-y-2">
+                                              <Label>Pattern (RegEx)</Label>
+                                              <Input
+                                                value={element.validation?.pattern || ""}
+                                                onChange={(e) =>
+                                                  updateElement(index, {
+                                                    validation: {
+                                                      ...(element.validation || {}),
+                                                      pattern: e.target.value,
+                                                    },
+                                                  })
+                                                }
+                                                placeholder="Regular expression pattern"
+                                              />
+                                              <p className="text-xs text-gray-500">
+                                                Example: ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ for email validation
+                                              </p>
+                                            </div>
+                                          </>
+                                        )}
+                                        
+                                        {!["heading", "paragraph"].includes(element.type) && (
+                                          <div className="space-y-2">
+                                            <Label>Custom Error Message</Label>
+                                            <Input
+                                              value={element.validation?.customMessage || ""}
+                                              onChange={(e) =>
+                                                updateElement(index, {
+                                                  validation: {
+                                                    ...(element.validation || {}),
+                                                    customMessage: e.target.value,
+                                                  },
+                                                })
+                                              }
+                                              placeholder="Shown when validation fails"
+                                            />
+                                          </div>
+                                        )}
+                                      </TabsContent>
+                                      
+                                      <TabsContent value="appearance" className="space-y-4 py-4">
+                                        <div className="space-y-2">
+                                          <Label className="flex items-center gap-2">
+                                            <Image className="h-4 w-4" /> Add Image
+                                          </Label>
+                                          <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                              <Label className="text-xs mb-2 block">Image URL</Label>
+                                              <Input
+                                                value={element.imageSrc || ""}
+                                                onChange={(e) =>
+                                                  updateElement(index, {
+                                                    imageSrc: e.target.value,
+                                                  })
+                                                }
+                                                placeholder="https://example.com/image.jpg"
+                                              />
+                                              <p className="text-xs text-gray-500 mt-1">
+                                                Enter a URL or choose from examples
+                                              </p>
+                                            </div>
+                                            <div className="space-y-2">
+                                              <Label className="text-xs mb-2 block">Example Images</Label>
+                                              <div className="grid grid-cols-2 gap-2">
+                                                {IMAGE_EXAMPLES.map((img) => (
+                                                  <button
+                                                    key={img.name}
+                                                    type="button"
+                                                    className="border rounded p-1 hover:bg-gray-100 transition-colors"
+                                                    onClick={() => updateElement(index, { imageSrc: img.src })}
+                                                  >
+                                                    <img
+                                                      src={img.src}
+                                                      alt={img.name}
+                                                      className="w-full h-12 object-cover rounded"
+                                                    />
+                                                    <span className="text-xs block mt-1 truncate">
+                                                      {img.name}
+                                                    </span>
+                                                  </button>
+                                                ))}
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </div>
+                                        
+                                        {element.imageSrc && (
+                                          <>
+                                            <div className="space-y-2">
+                                              <Label>Image Position</Label>
+                                              <Select
+                                                value={element.imagePosition || "left"}
+                                                onValueChange={(value: "left" | "right") =>
+                                                  updateElement(index, { imagePosition: value })
+                                                }
+                                              >
+                                                <SelectTrigger>
+                                                  <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                  <SelectItem value="left">Left</SelectItem>
+                                                  <SelectItem value="right">Right</SelectItem>
+                                                </SelectContent>
+                                              </Select>
+                                            </div>
+                                            
+                                            <div className="space-y-2">
+                                              <Label>Image Size</Label>
+                                              <Select
+                                                value={element.imageSize || "medium"}
+                                                onValueChange={(value: "small" | "medium" | "large") =>
+                                                  updateElement(index, { imageSize: value })
+                                                }
+                                              >
+                                                <SelectTrigger>
+                                                  <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                  <SelectItem value="small">Small</SelectItem>
+                                                  <SelectItem value="medium">Medium</SelectItem>
+                                                  <SelectItem value="large">Large</SelectItem>
+                                                </SelectContent>
+                                              </Select>
+                                            </div>
+                                          </>
+                                        )}
+                                      </TabsContent>
+                                    </Tabs>
                                   </DialogContent>
                                 </Dialog>
                                 <Button
@@ -345,11 +690,39 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
                                 </Button>
                               </div>
                             </div>
-                            <Input
-                              type={element.type}
-                              placeholder={element.placeholder}
-                              className="mt-2"
-                            />
+                            
+                            {/* Preview of the field in builder mode */}
+                            <div className="mt-2">
+                              {element.imageSrc && (
+                                <div className={`flex items-center gap-2 mb-2 ${element.imagePosition === "right" ? "justify-end" : "justify-start"}`}>
+                                  <img 
+                                    src={element.imageSrc} 
+                                    alt={`Preview for ${element.label}`}
+                                    className="h-10 w-10 object-cover rounded"
+                                  />
+                                </div>
+                              )}
+                              
+                              {["heading", "paragraph"].includes(element.type) ? (
+                                element.type === "heading" ? (
+                                  <h3 className="text-lg font-semibold">{element.label}</h3>
+                                ) : (
+                                  <p className="text-gray-600">{element.label}</p>
+                                )
+                              ) : (
+                                <>
+                                  {element.type === "textarea" ? (
+                                    <Textarea placeholder={element.placeholder} className="mt-2" />
+                                  ) : (
+                                    <Input
+                                      type={element.type}
+                                      placeholder={element.placeholder}
+                                      className="mt-2"
+                                    />
+                                  )}
+                                </>
+                              )}
+                            </div>
                           </Card>
                         </div>
                       )}
@@ -362,7 +735,7 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
           </DragDropContext>
 
           {elements.length === 0 && (
-            <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed">
+            <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed mt-6">
               <p className="text-gray-500">
                 Start by adding form elements from the toolbar above
               </p>

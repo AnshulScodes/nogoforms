@@ -37,10 +37,17 @@ export type FormBlockJson = {
   placeholder?: string;
   required?: boolean;
   options?: string[];
+  imageSrc?: string;
+  imagePosition?: "left" | "right";
+  imageSize?: "small" | "medium" | "large";
   validation?: {
     pattern?: string;
     min?: number;
     max?: number;
+    minLength?: number;
+    maxLength?: number;
     customMessage?: string;
   };
+  helpText?: string;
+  defaultValue?: string | number | boolean;
 };

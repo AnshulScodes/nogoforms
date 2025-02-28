@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/select";
 import { submitFormResponse } from '@/services/forms';
 import type { FormBlock } from '@/sdk';
+import { cn } from '@/lib/utils';
+import { Textarea } from '@/components/ui/textarea';
 
 interface FormPreviewProps {
   blocks: FormBlock[];
@@ -38,7 +40,16 @@ const FormPreview: React.FC<FormPreviewProps> = ({ blocks, formId, userInfo = {}
   useEffect(() => {
     // Check if the component is in an iframe
     setIsEmbedded(window.self !== window.top);
-  }, []);
+    
+    // Initialize form data with default values
+    const initialData: Record<string, any> = {};
+    blocks.forEach(block => {
+      if (block.defaultValue !== undefined) {
+        initialData[block.id] = block.defaultValue;
+      }
+    });
+    setFormData(initialData);
+  }, [blocks]);
 
   const handleInputChange = (blockId: string, value: any) => {
     setFormData(prev => ({
@@ -112,6 +123,27 @@ const FormPreview: React.FC<FormPreviewProps> = ({ blocks, formId, userInfo = {}
     ? "p-0" 
     : "p-6 border rounded-lg shadow-sm bg-white";
 
+  // Function to render an image with the appropriate size class
+  const renderFieldImage = (block: FormBlock) => {
+    if (!block.imageSrc) return null;
+    
+    const sizeClasses = {
+      small: "w-16 h-16",
+      medium: "w-24 h-24",
+      large: "w-32 h-32"
+    };
+    
+    const sizeClass = block.imageSize ? sizeClasses[block.imageSize] : sizeClasses.medium;
+    
+    return (
+      <img 
+        src={block.imageSrc} 
+        alt={`Image for ${block.label}`} 
+        className={cn(sizeClass, "object-cover rounded-md")}
+      />
+    );
+  };
+
   return (
     <div className={containerClass}>
       {submitted ? (
@@ -127,74 +159,206 @@ const FormPreview: React.FC<FormPreviewProps> = ({ blocks, formId, userInfo = {}
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
-          {blocks.map((block) => (
-            <div key={block.id} className="space-y-2">
-              <Label>
-                {block.label}
-                {block.required && <span className="text-red-500 ml-1">*</span>}
-              </Label>
-              
-              {['text', 'email', 'number'].includes(block.type) && (
-                <Input
-                  type={block.type}
-                  placeholder={block.placeholder}
-                  required={block.required}
-                  value={formData[block.id] || ''}
-                  onChange={(e) => handleInputChange(block.id, e.target.value)}
-                />
-              )}
-
-              {block.type === 'select' && (
-                <Select
-                  value={formData[block.id] || ''}
-                  onValueChange={(value) => handleInputChange(block.id, value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={block.placeholder} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {block.options?.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-
-              {block.type === 'checkbox' && (
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id={block.id}
-                    checked={formData[block.id] || false}
-                    onCheckedChange={(checked) => handleInputChange(block.id, checked)}
-                    required={block.required}
-                  />
-                  <label
-                    htmlFor={block.id}
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    {block.placeholder || block.label}
-                  </label>
+          {blocks.map((block) => {
+            // For heading and paragraph types, render them differently
+            if (block.type === 'heading') {
+              return (
+                <h2 key={block.id} className="text-xl font-semibold mt-6 mb-2">
+                  {block.label}
+                </h2>
+              );
+            }
+            
+            if (block.type === 'paragraph') {
+              return (
+                <p key={block.id} className="text-gray-600 mb-4">
+                  {block.label}
+                </p>
+              );
+            }
+            
+            // For regular form fields
+            return (
+              <div key={block.id} className="space-y-2">
+                <div className={cn(
+                  "flex items-start gap-3",
+                  block.imagePosition === "right" && "flex-row-reverse"
+                )}>
+                  <div className={cn("flex-1", block.imageSrc && "max-w-[calc(100%-88px)]")}>
+                    <Label>
+                      {block.label}
+                      {block.required && <span className="text-red-500 ml-1">*</span>}
+                    </Label>
+                    
+                    {block.helpText && (
+                      <p className="text-xs text-gray-500 mt-1 mb-2">{block.helpText}</p>
+                    )}
+                    
+                    {/* Text, Email, Tel, URL, Password Inputs */}
+                    {['text', 'email', 'tel', 'url', 'password'].includes(block.type) && (
+                      <Input
+                        type={block.type}
+                        placeholder={block.placeholder}
+                        required={block.required}
+                        value={formData[block.id] || ''}
+                        onChange={(e) => handleInputChange(block.id, e.target.value)}
+                      />
+                    )}
+                    
+                    {/* Number Input */}
+                    {block.type === 'number' && (
+                      <Input
+                        type="number"
+                        placeholder={block.placeholder}
+                        required={block.required}
+                        min={block.validation?.min}
+                        max={block.validation?.max}
+                        value={formData[block.id] || ''}
+                        onChange={(e) => handleInputChange(block.id, e.target.value)}
+                      />
+                    )}
+                    
+                    {/* Textarea */}
+                    {block.type === 'textarea' && (
+                      <Textarea
+                        placeholder={block.placeholder}
+                        required={block.required}
+                        value={formData[block.id] || ''}
+                        onChange={(e) => handleInputChange(block.id, e.target.value)}
+                        className="min-h-[100px]"
+                      />
+                    )}
+                    
+                    {/* Date Input */}
+                    {block.type === 'date' && (
+                      <Input
+                        type="date"
+                        required={block.required}
+                        value={formData[block.id] || ''}
+                        onChange={(e) => handleInputChange(block.id, e.target.value)}
+                      />
+                    )}
+                    
+                    {/* Time Input */}
+                    {block.type === 'time' && (
+                      <Input
+                        type="time"
+                        required={block.required}
+                        value={formData[block.id] || ''}
+                        onChange={(e) => handleInputChange(block.id, e.target.value)}
+                      />
+                    )}
+                    
+                    {/* Color Picker */}
+                    {block.type === 'color' && (
+                      <div className="flex items-center gap-3">
+                        <Input
+                          type="color"
+                          required={block.required}
+                          value={formData[block.id] || '#000000'}
+                          onChange={(e) => handleInputChange(block.id, e.target.value)}
+                          className="w-12 h-10 p-1"
+                        />
+                        <span className="text-sm text-gray-500">
+                          {formData[block.id] || '#000000'}
+                        </span>
+                      </div>
+                    )}
+                    
+                    {/* Range Slider */}
+                    {block.type === 'range' && (
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-xs text-gray-500">
+                          <span>{block.validation?.min || 0}</span>
+                          <span>{block.validation?.max || 100}</span>
+                        </div>
+                        <Input
+                          type="range"
+                          min={block.validation?.min || 0}
+                          max={block.validation?.max || 100}
+                          value={formData[block.id] || 0}
+                          onChange={(e) => handleInputChange(block.id, parseInt(e.target.value))}
+                          className="w-full"
+                        />
+                        <div className="text-center text-sm">
+                          Value: {formData[block.id] || 0}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* File Upload */}
+                    {block.type === 'file' && (
+                      <Input
+                        type="file"
+                        required={block.required}
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files.length > 0) {
+                            handleInputChange(block.id, e.target.files[0]);
+                          }
+                        }}
+                      />
+                    )}
+                    
+                    {/* Select Dropdown */}
+                    {block.type === 'select' && (
+                      <Select
+                        value={formData[block.id] || ''}
+                        onValueChange={(value) => handleInputChange(block.id, value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={block.placeholder} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {block.options?.map((option) => (
+                            <SelectItem key={option} value={option}>
+                              {option}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                    
+                    {/* Checkbox */}
+                    {block.type === 'checkbox' && (
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id={block.id}
+                          checked={formData[block.id] || false}
+                          onCheckedChange={(checked) => handleInputChange(block.id, checked)}
+                          required={block.required}
+                        />
+                        <label
+                          htmlFor={block.id}
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                          {block.placeholder || block.label}
+                        </label>
+                      </div>
+                    )}
+                    
+                    {/* Radio Buttons */}
+                    {block.type === 'radio' && (
+                      <RadioGroup
+                        value={formData[block.id] || ''}
+                        onValueChange={(value) => handleInputChange(block.id, value)}
+                        required={block.required}
+                      >
+                        {block.options?.map((option) => (
+                          <div key={option} className="flex items-center space-x-2">
+                            <RadioGroupItem value={option} id={`${block.id}-${option}`} />
+                            <Label htmlFor={`${block.id}-${option}`}>{option}</Label>
+                          </div>
+                        ))}
+                      </RadioGroup>
+                    )}
+                  </div>
+                  
+                  {/* Render the field image if provided */}
+                  {renderFieldImage(block)}
                 </div>
-              )}
-
-              {block.type === 'radio' && (
-                <RadioGroup
-                  value={formData[block.id] || ''}
-                  onValueChange={(value) => handleInputChange(block.id, value)}
-                  required={block.required}
-                >
-                  {block.options?.map((option) => (
-                    <div key={option} className="flex items-center space-x-2">
-                      <RadioGroupItem value={option} id={`${block.id}-${option}`} />
-                      <Label htmlFor={`${block.id}-${option}`}>{option}</Label>
-                    </div>
-                  ))}
-                </RadioGroup>
-              )}
-            </div>
-          ))}
+              </div>
+            );
+          })}
 
           <Button 
             type="submit" 

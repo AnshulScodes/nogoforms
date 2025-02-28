@@ -2,7 +2,25 @@
 import type { Json } from "@/types/database";
 import type { FormBlockJson } from "@/types/forms";
 
-export type FormBlockType = "text" | "email" | "number" | "select" | "checkbox" | "radio";
+export type FormBlockType = 
+  "text" | 
+  "email" | 
+  "number" | 
+  "select" | 
+  "checkbox" | 
+  "radio" | 
+  "textarea" | 
+  "date" | 
+  "tel" | 
+  "url" | 
+  "password" | 
+  "range" | 
+  "file" | 
+  "hidden" | 
+  "color" | 
+  "time" | 
+  "heading" | 
+  "paragraph";
 
 export interface FormBlockConfig {
   type: FormBlockType;
@@ -10,12 +28,19 @@ export interface FormBlockConfig {
   placeholder?: string;
   required?: boolean;
   options?: string[];
+  imageSrc?: string;
+  imagePosition?: "left" | "right";
+  imageSize?: "small" | "medium" | "large";
   validation?: {
     pattern?: string;
     min?: number;
     max?: number;
+    minLength?: number;
+    maxLength?: number;
     customMessage?: string;
   };
+  helpText?: string;
+  defaultValue?: string | number | boolean;
 }
 
 export interface FormBlock extends FormBlockConfig {

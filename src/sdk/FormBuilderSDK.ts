@@ -1,3 +1,4 @@
+
 import type { Form, FormBlockJson } from "@/types/forms";
 import type { Json } from "@/types/database";
 import { FormBlockSDK, type FormBlock, type FormBlockConfig } from "./FormBlockSDK";
@@ -80,6 +81,11 @@ export class FormBuilderSDK {
       required: block.required || false,
       options: block.options || [],
       validation: block.validation || null,
+      imageSrc: block.imageSrc || null,
+      imagePosition: block.imagePosition || null,
+      imageSize: block.imageSize || null,
+      helpText: block.helpText || null,
+      defaultValue: block.defaultValue || null,
     })) as Json;
 
     const formData = {
