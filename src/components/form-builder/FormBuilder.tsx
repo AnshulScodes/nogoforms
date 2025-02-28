@@ -566,7 +566,7 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
                                                 placeholder="Regular expression pattern"
                                               />
                                               <p className="text-xs text-gray-500">
-                                                Example: ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ for email validation
+                                                Example: ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]&#123;2,&#125;$ for email validation
                                               </p>
                                             </div>
                                           </>
