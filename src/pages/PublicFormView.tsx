@@ -79,11 +79,6 @@ export default function PublicFormView() {
     <div className="min-h-screen bg-gray-50 p-4">
       <Toaster />
       <div className="container mx-auto max-w-3xl">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold">{form.title}</h1>
-          {form.description && <p className="text-gray-600 mt-2">{form.description}</p>}
-        </div>
-        
         <FormPreview 
           blocks={form.form_schema} 
           formId={form.id}
