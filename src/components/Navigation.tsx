@@ -9,6 +9,13 @@ export function Navigation() {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   const location = useLocation();
+  
+  // Check if we're in the embedded form view
+  if (document.body.classList.contains('form-embed-view')) {
+    return null;
+  }
+
+  if (!user) return null;
 
   const handleSignOut = async () => {
     await signOut();
@@ -17,8 +24,6 @@ export function Navigation() {
       description: "You have been successfully signed out.",
     });
   };
-
-  if (!user) return null;
 
   return (
     <nav className="border-b bg-white/50 backdrop-blur-sm sticky top-0 z-50">

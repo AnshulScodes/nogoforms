@@ -54,6 +54,15 @@ export default function PublicFormView() {
     loadForm();
   }, [formId, searchParams]);
 
+  // Add a class to the document body to indicate this is an embedded form
+  useEffect(() => {
+    document.body.classList.add('form-embed-view');
+    
+    return () => {
+      document.body.classList.remove('form-embed-view');
+    };
+  }, []);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">

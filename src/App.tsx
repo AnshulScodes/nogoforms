@@ -13,6 +13,9 @@ import Dashboard from "./pages/Dashboard";
 import FormBuilder from "./components/form-builder/FormBuilder";
 import PublicFormView from "./pages/PublicFormView";
 
+// Add CSS to hide navigation in embedded views
+import "./embed.css";
+
 const queryClient = new QueryClient();
 
 const App = () => (

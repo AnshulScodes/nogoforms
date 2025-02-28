@@ -1,0 +1,16 @@
+
+/* Hide any navigation elements when in form embed view */
+body.form-embed-view nav {
+  display: none !important;
+}
+
+/* Ensure proper spacing for embedded forms */
+body.form-embed-view {
+  padding: 0;
+  margin: 0;
+}
+
+body.form-embed-view #root {
+  height: auto;
+  min-height: 0;
+}
