@@ -466,7 +466,7 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
                                           <div className="space-y-2">
                                             <Label>Default Value (optional)</Label>
                                             <Input
-                                              value={element.defaultValue || ""}
+                                              value={element.defaultValue?.toString() || ""}
                                               onChange={(e) =>
                                                 updateElement(index, {
                                                   defaultValue: e.target.value,
