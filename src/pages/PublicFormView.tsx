@@ -93,7 +93,7 @@ export default function PublicFormView() {
         />
         
         <div className="mt-8 text-center text-gray-500 text-sm">
-          Form powered by FormBuilder
+          Form powered by NogoForms
         </div>
       </div>
     </div>
