@@ -37,10 +37,8 @@ export default function FormEmbed() {
       }
 
       try {
-        console.log(`Loading embed form (ID: ${formId})...`);
         const formData = await getFormById(formId);
         setForm(formData);
-        console.log(`Form "${formData.title}" loaded successfully!`);
         
         if (Object.values(userInfo).some(val => val !== undefined)) {
           console.log("User info provided via URL:", userInfo);
@@ -57,29 +55,23 @@ export default function FormEmbed() {
   }, [formId, searchParams]);
 
   if (loading) {
-    return <div className="p-4 text-center text-gray-600">Loading form...</div>;
+    return <div className="p-2 text-sm text-gray-600">Loading...</div>;
   }
 
   if (error || !form) {
     return (
-      <div className="p-4 text-center">
+      <div className="p-2">
         <Toaster />
-        <div className="bg-white rounded-lg shadow-sm p-4">
-          <h2 className="text-red-500">Error</h2>
-          <p className="text-gray-600">{error || "Form not found"}</p>
+        <div className="bg-white rounded p-2">
+          <p className="text-sm text-red-500">{error || "Form not found"}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-4">
+    <div className="form-embed">
       <Toaster />
-      <div>
-        <h1 className="text-xl font-semibold mb-2">{form.title}</h1>
-        {form.description && <p className="text-gray-600 mb-4">{form.description}</p>}
-      </div>
-      
       <FormPreview 
         blocks={form.form_schema} 
         formId={form.id}

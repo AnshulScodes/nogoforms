@@ -37,10 +37,8 @@ export default function PublicFormView() {
       }
 
       try {
-        console.log(`Loading public form (ID: ${formId})...`);
         const formData = await getFormById(formId);
         setForm(formData);
-        console.log(`Form "${formData.title}" loaded successfully!`);
         
         if (Object.values(userInfo).some(val => val !== undefined)) {
           console.log("User info provided via URL:", userInfo);
@@ -91,10 +89,6 @@ export default function PublicFormView() {
           formId={form.id}
           userInfo={userInfo}
         />
-        
-        <div className="mt-8 text-center text-gray-500 text-sm">
-          Form powered by NogoForms
-        </div>
       </div>
     </div>
   );

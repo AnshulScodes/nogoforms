@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +36,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({ blocks, formId, userInfo = {}
   const { toast } = useToast();
 
   useEffect(() => {
+    // Check if the component is in an iframe
     setIsEmbedded(window.self !== window.top);
   }, []);
 
@@ -69,7 +71,6 @@ const FormPreview: React.FC<FormPreviewProps> = ({ blocks, formId, userInfo = {}
 
     try {
       setIsSubmitting(true);
-      console.log('Submitting form data:', { formId, formData, userInfo });
       
       const metadata = {
         submitted_at: new Date().toISOString(),
@@ -79,8 +80,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({ blocks, formId, userInfo = {}
         referrer: document.referrer || 'direct'
       };
       
-      const result = await submitFormResponse(formId, formData, metadata);
-      console.log('Submission result:', result);
+      await submitFormResponse(formId, formData, metadata);
       
       toast({
         title: "Success!",
@@ -107,8 +107,13 @@ const FormPreview: React.FC<FormPreviewProps> = ({ blocks, formId, userInfo = {}
     return requiredFields.every(field => formData[field.id]);
   };
 
+  // Apply minimal styling when embedded
+  const containerClass = isEmbedded 
+    ? "p-0" 
+    : "p-6 border rounded-lg shadow-sm bg-white";
+
   return (
-    <div className={isEmbedded ? "p-0" : "p-6 border rounded-lg shadow-sm bg-white"}>
+    <div className={containerClass}>
       {submitted ? (
         <div className="text-center py-4">
           <h2 className="text-xl font-semibold text-green-600 mb-2">Thank You!</h2>
