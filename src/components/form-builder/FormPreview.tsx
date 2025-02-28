@@ -1,6 +1,4 @@
-
-import React, { useState } from 'react';
-import { Card } from "@/components/ui/card";
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,14 +31,18 @@ const FormPreview: React.FC<FormPreviewProps> = ({ blocks, formId, userInfo = {}
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [isEmbedded, setIsEmbedded] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    setIsEmbedded(window.self !== window.top);
+  }, []);
 
   const handleInputChange = (blockId: string, value: any) => {
     setFormData(prev => ({
       ...prev,
       [blockId]: value
     }));
-    // Reset submitted state when form is modified
     if (submitted) setSubmitted(false);
   };
 
@@ -69,7 +71,6 @@ const FormPreview: React.FC<FormPreviewProps> = ({ blocks, formId, userInfo = {}
       setIsSubmitting(true);
       console.log('Submitting form data:', { formId, formData, userInfo });
       
-      // Create submission with form data and user info
       const metadata = {
         submitted_at: new Date().toISOString(),
         user_agent: navigator.userAgent,
@@ -88,7 +89,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({ blocks, formId, userInfo = {}
       });
       
       setSubmitted(true);
-      setFormData({}); // Reset form
+      setFormData({});
     } catch (error: any) {
       console.error("Form submission error:", error);
       toast({
@@ -107,11 +108,11 @@ const FormPreview: React.FC<FormPreviewProps> = ({ blocks, formId, userInfo = {}
   };
 
   return (
-    <Card className="p-6">
+    <div className={isEmbedded ? "p-0" : "p-6 border rounded-lg shadow-sm bg-white"}>
       {submitted ? (
-        <div className="text-center py-8">
-          <h2 className="text-2xl font-semibold text-green-600 mb-2">Thank You!</h2>
-          <p className="text-gray-600 mb-6">Your response has been submitted successfully.</p>
+        <div className="text-center py-4">
+          <h2 className="text-xl font-semibold text-green-600 mb-2">Thank You!</h2>
+          <p className="text-gray-600 mb-4">Your response has been submitted successfully.</p>
           <Button 
             onClick={() => setSubmitted(false)} 
             variant="outline"
@@ -120,7 +121,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({ blocks, formId, userInfo = {}
           </Button>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4">
           {blocks.map((block) => (
             <div key={block.id} className="space-y-2">
               <Label>
@@ -207,7 +208,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({ blocks, formId, userInfo = {}
           </Button>
         </form>
       )}
-    </Card>
+    </div>
   );
 };
 
