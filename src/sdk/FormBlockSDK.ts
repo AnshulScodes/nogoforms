@@ -1,4 +1,3 @@
-
 import type { Json } from "@/types/database";
 import type { FormBlockJson } from "@/types/forms";
 
@@ -31,6 +30,7 @@ export interface FormBlockConfig {
   imageSrc?: string;
   imagePosition?: "left" | "right";
   imageSize?: "small" | "medium" | "large";
+  imageFullField?: boolean;
   validation?: {
     pattern?: string;
     min?: number;

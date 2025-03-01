@@ -27,6 +27,7 @@ export type FormBlock = {
   imageSrc?: string;
   imagePosition?: "left" | "right";
   imageSize?: "small" | "medium" | "large";
+  imageFullField?: boolean;
   // Grid layout properties
   columnWidth?: string; // "1", "1/2", "1/3", "2/3", "1/4", "3/4"
   rowIndex?: number;

@@ -148,6 +148,20 @@ const FormPreview: React.FC<FormPreviewProps> = ({ blocks, formId, userInfo = {}
   const renderFieldImage = (block: FormBlock) => {
     if (!block.imageSrc) return null;
     
+    // If imageFullField is true, render a full-width image
+    if (block.imageFullField) {
+      return (
+        <div className="w-full">
+          <img 
+            src={block.imageSrc} 
+            alt={`Image for ${block.label}`} 
+            className="w-full max-h-[400px] object-contain rounded-md"
+          />
+        </div>
+      );
+    }
+    
+    // Otherwise render with the appropriate size class
     const sizeClasses = {
       small: "w-16 h-16",
       medium: "w-24 h-24",
@@ -247,6 +261,15 @@ function renderFormField(
   handleInputChange: (blockId: string, value: any) => void,
   renderFieldImage: (block: FormBlock) => React.ReactNode
 ) {
+  // If it's a full-field image, only render the image
+  if (block.imageSrc && block.imageFullField) {
+    return (
+      <div className="w-full">
+        {renderFieldImage(block)}
+      </div>
+    );
+  }
+  
   // For heading and paragraph types, render them differently
   if (block.type === 'heading') {
     return (

@@ -5,6 +5,8 @@ import { Plus, Settings, Trash2 } from "lucide-react";
 import { FormBlock } from "@/sdk";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +21,19 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 
 interface GridCellProps {
   rowIndex: number;
@@ -204,7 +219,208 @@ const GridCell: React.FC<GridCellProps> = ({
                       <DialogHeader>
                         <DialogTitle>Field Settings</DialogTitle>
                       </DialogHeader>
-                      {/* Field settings content would go here */}
+                      <Tabs defaultValue="basic">
+                        <TabsList className="w-full">
+                          <TabsTrigger value="basic">Basic Settings</TabsTrigger>
+                          <TabsTrigger value="appearance">Appearance</TabsTrigger>
+                          <TabsTrigger value="layout">Layout</TabsTrigger>
+                        </TabsList>
+                        
+                        <TabsContent value="basic" className="space-y-4 py-4">
+                          <div className="space-y-2">
+                            <Label>Field Type</Label>
+                            <Select
+                              value={block.type}
+                              onValueChange={(value: FormBlock["type"]) =>
+                                onUpdateField?.(block.id, { type: value })
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="text">Text</SelectItem>
+                                <SelectItem value="email">Email</SelectItem>
+                                <SelectItem value="number">Number</SelectItem>
+                                <SelectItem value="textarea">Textarea</SelectItem>
+                                <SelectItem value="select">Select</SelectItem>
+                                <SelectItem value="checkbox">Checkbox</SelectItem>
+                                <SelectItem value="radio">Radio</SelectItem>
+                                <SelectItem value="heading">Heading</SelectItem>
+                                <SelectItem value="paragraph">Paragraph</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          {!["heading", "paragraph"].includes(block.type) && (
+                            <div className="space-y-2">
+                              <Label>Placeholder</Label>
+                              <Input
+                                value={block.placeholder || ""}
+                                onChange={(e) =>
+                                  onUpdateField?.(block.id, {
+                                    placeholder: e.target.value,
+                                  })
+                                }
+                              />
+                            </div>
+                          )}
+                          
+                          {!["heading", "paragraph"].includes(block.type) && (
+                            <div className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`required-${block.id}`}
+                                checked={block.required || false}
+                                onCheckedChange={(checked) =>
+                                  onUpdateField?.(block.id, { required: !!checked })
+                                }
+                              />
+                              <Label htmlFor={`required-${block.id}`}>Required field</Label>
+                            </div>
+                          )}
+                          
+                          {["select", "radio"].includes(block.type) && (
+                            <div className="space-y-2">
+                              <Label>Options (one per line)</Label>
+                              <Textarea
+                                value={(block.options || []).join("\n")}
+                                onChange={(e) =>
+                                  onUpdateField?.(block.id, {
+                                    options: e.target.value.split("\n").filter(Boolean),
+                                  })
+                                }
+                                placeholder="Option 1&#10;Option 2&#10;Option 3"
+                                className="min-h-[100px]"
+                              />
+                            </div>
+                          )}
+                        </TabsContent>
+                        
+                        <TabsContent value="appearance" className="space-y-4 py-4">
+                          <div className="space-y-2">
+                            <Label>Add Image URL</Label>
+                            <Input
+                              value={block.imageSrc || ""}
+                              onChange={(e) =>
+                                onUpdateField?.(block.id, {
+                                  imageSrc: e.target.value,
+                                })
+                              }
+                              placeholder="https://example.com/image.jpg"
+                            />
+                          </div>
+                          
+                          {block.imageSrc && (
+                            <>
+                              <div className="space-y-2">
+                                <Label>Image Display Mode</Label>
+                                <Select
+                                  value={block.imageFullField ? "full" : "inline"}
+                                  onValueChange={(value) =>
+                                    onUpdateField?.(block.id, { 
+                                      imageFullField: value === "full",
+                                      imagePosition: value === "full" ? "left" : block.imagePosition || "left"
+                                    })
+                                  }
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="inline">Inline with content</SelectItem>
+                                    <SelectItem value="full">Full field (image only)</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              
+                              {!block.imageFullField && (
+                                <>
+                                  <div className="space-y-2">
+                                    <Label>Image Position</Label>
+                                    <Select
+                                      value={block.imagePosition || "left"}
+                                      onValueChange={(value) =>
+                                        onUpdateField?.(block.id, { imagePosition: value as "left" | "right" })
+                                      }
+                                    >
+                                      <SelectTrigger>
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="left">Left</SelectItem>
+                                        <SelectItem value="right">Right</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                  
+                                  <div className="space-y-2">
+                                    <Label>Image Size</Label>
+                                    <Select
+                                      value={block.imageSize || "medium"}
+                                      onValueChange={(value) =>
+                                        onUpdateField?.(block.id, { imageSize: value as "small" | "medium" | "large" })
+                                      }
+                                    >
+                                      <SelectTrigger>
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="small">Small</SelectItem>
+                                        <SelectItem value="medium">Medium</SelectItem>
+                                        <SelectItem value="large">Large</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                </>
+                              )}
+                            </>
+                          )}
+                        </TabsContent>
+                        
+                        <TabsContent value="layout" className="space-y-4 py-4">
+                          <div className="space-y-2">
+                            <Label>Column Width</Label>
+                            <Select
+                              value={block.columnWidth || "1"}
+                              onValueChange={(value) =>
+                                onUpdateField?.(block.id, { columnWidth: value })
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="1">Full Width</SelectItem>
+                                <SelectItem value="1/2">Half Width</SelectItem>
+                                <SelectItem value="1/3">One Third</SelectItem>
+                                <SelectItem value="2/3">Two Thirds</SelectItem>
+                                <SelectItem value="1/4">One Quarter</SelectItem>
+                                <SelectItem value="3/4">Three Quarters</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label>Element Height</Label>
+                            <Select
+                              value={block.height || "auto"}
+                              onValueChange={(value) =>
+                                onUpdateField?.(block.id, { height: value as "auto" | "small" | "medium" | "large" })
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="auto">Auto</SelectItem>
+                                <SelectItem value="small">Small</SelectItem>
+                                <SelectItem value="medium">Medium</SelectItem>
+                                <SelectItem value="large">Large</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </TabsContent>
+                      </Tabs>
                     </DialogContent>
                   </Dialog>
                   <Button
@@ -220,19 +436,30 @@ const GridCell: React.FC<GridCellProps> = ({
               {/* Field preview */}
               <div className="mt-2">
                 {block.imageSrc && (
-                  <div className={`flex items-center gap-2 mb-2 ${block.imagePosition === "right" ? "justify-end" : "justify-start"}`}>
-                    <img 
-                      src={block.imageSrc} 
-                      alt={`Preview for ${block.label}`}
-                      className={`object-cover rounded ${
-                        block.imageSize === "small" ? "h-16 w-16" : 
-                        block.imageSize === "large" ? "h-32 w-32" : "h-24 w-24"
-                      }`}
-                    />
-                  </div>
+                  block.imageFullField ? (
+                    <div className="w-full mb-2">
+                      <img 
+                        src={block.imageSrc} 
+                        alt={`Preview for ${block.label}`}
+                        className="w-full max-h-[400px] object-contain rounded"
+                      />
+                    </div>
+                  ) : (
+                    <div className={`flex items-center gap-2 mb-2 ${block.imagePosition === "right" ? "justify-end" : "justify-start"}`}>
+                      <img 
+                        src={block.imageSrc} 
+                        alt={`Preview for ${block.label}`}
+                        className={`object-cover rounded ${
+                          block.imageSize === "small" ? "h-16 w-16" : 
+                          block.imageSize === "large" ? "h-32 w-32" : "h-24 w-24"
+                        }`}
+                      />
+                    </div>
+                  )
                 )}
                 
-                {renderFieldPreview()}
+                {/* Only render the field preview if it's not a full-field image */}
+                {(!block.imageSrc || !block.imageFullField) && renderFieldPreview()}
               </div>
               
               {/* Resizable handle */}

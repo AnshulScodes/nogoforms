@@ -813,38 +813,71 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
                                           {element.imageSrc && (
                                             <>
                                               <div className="space-y-2">
-                                                <Label>Image Position</Label>
+                                                <Label>Image Display Mode</Label>
                                                 <Select
-                                                  value={element.imagePosition || "left"}
-                                                  onValueChange={(value: "left" | "right") =>
-                                                    updateElement(index, { imagePosition: value })
+                                                  value={element.imageFullField ? "full" : "inline"}
+                                                  onValueChange={(value: "inline" | "full") =>
+                                                    updateElement(index, { 
+                                                      imageFullField: value === "full",
+                                                      // If full field mode is selected, set position to left as default
+                                                      imagePosition: value === "full" ? "left" : element.imagePosition || "left"
+                                                    })
                                                   }
                                                 >
                                                   <SelectTrigger>
                                                     <SelectValue />
                                                   </SelectTrigger>
                                                   <SelectContent>
-                                                    <SelectItem value="left">Left</SelectItem>
-                                                    <SelectItem value="right">Right</SelectItem>
+                                                    <SelectItem value="inline">Inline with content</SelectItem>
+                                                    <SelectItem value="full">Full field (image only)</SelectItem>
                                                   </SelectContent>
                                                 </Select>
                                               </div>
                                               
+                                              {!element.imageFullField && (
+                                                <div className="space-y-2">
+                                                  <Label>Image Position</Label>
+                                                  <Select
+                                                    value={element.imagePosition || "left"}
+                                                    onValueChange={(value: "left" | "right") =>
+                                                      updateElement(index, { imagePosition: value })
+                                                    }
+                                                  >
+                                                    <SelectTrigger>
+                                                      <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                      <SelectItem value="left">Left</SelectItem>
+                                                      <SelectItem value="right">Right</SelectItem>
+                                                    </SelectContent>
+                                                  </Select>
+                                                </div>
+                                              )}
+                                              
                                               <div className="space-y-2">
                                                 <Label>Image Size</Label>
                                                 <Select
-                                                  value={element.imageSize || "medium"}
-                                                  onValueChange={(value: "small" | "medium" | "large") =>
-                                                    updateElement(index, { imageSize: value })
+                                                  value={element.imageFullField ? "full" : (element.imageSize || "medium")}
+                                                  onValueChange={(value) =>
+                                                    updateElement(index, { 
+                                                      imageSize: value === "full" ? "full" : value as "small" | "medium" | "large"
+                                                    })
                                                   }
+                                                  disabled={element.imageFullField}
                                                 >
                                                   <SelectTrigger>
                                                     <SelectValue />
                                                   </SelectTrigger>
                                                   <SelectContent>
-                                                    <SelectItem value="small">Small</SelectItem>
-                                                    <SelectItem value="medium">Medium</SelectItem>
-                                                    <SelectItem value="large">Large</SelectItem>
+                                                    {element.imageFullField ? (
+                                                      <SelectItem value="full">Full Size</SelectItem>
+                                                    ) : (
+                                                      <>
+                                                        <SelectItem value="small">Small</SelectItem>
+                                                        <SelectItem value="medium">Medium</SelectItem>
+                                                        <SelectItem value="large">Large</SelectItem>
+                                                      </>
+                                                    )}
                                                   </SelectContent>
                                                 </Select>
                                               </div>
@@ -931,36 +964,49 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
                               {/* Preview of the field in builder mode */}
                               <div className="mt-2">
                                 {element.imageSrc && (
-                                  <div className={`flex items-center gap-2 mb-2 ${element.imagePosition === "right" ? "justify-end" : "justify-start"}`}>
-                                    <img 
-                                      src={element.imageSrc} 
-                                      alt={`Preview for ${element.label}`}
-                                      className={`object-cover rounded ${
-                                        element.imageSize === "small" ? "h-16 w-16" : 
-                                        element.imageSize === "large" ? "h-32 w-32" : "h-24 w-24"
-                                      }`}
-                                    />
-                                  </div>
+                                  element.imageFullField ? (
+                                    <div className="w-full">
+                                      <img 
+                                        src={element.imageSrc} 
+                                        alt={`${element.label}`}
+                                        className="w-full object-cover rounded"
+                                        style={{ maxHeight: '400px' }}
+                                      />
+                                    </div>
+                                  ) : (
+                                    <div className={`flex items-center gap-2 mb-2 ${element.imagePosition === "right" ? "justify-end" : "justify-start"}`}>
+                                      <img 
+                                        src={element.imageSrc} 
+                                        alt={`Preview for ${element.label}`}
+                                        className={`object-cover rounded ${
+                                          element.imageSize === "small" ? "h-16 w-16" : 
+                                          element.imageSize === "large" ? "h-32 w-32" : "h-24 w-24"
+                                        }`}
+                                      />
+                                    </div>
+                                  )
                                 )}
                                 
-                                {["heading", "paragraph"].includes(element.type) ? (
-                                  element.type === "heading" ? (
-                                    <h3 className="text-lg font-semibold">{element.label}</h3>
-                                  ) : (
-                                    <p className="text-gray-600">{element.label}</p>
-                                  )
-                                ) : (
-                                  <>
-                                    {element.type === "textarea" ? (
-                                      <Textarea placeholder={element.placeholder} className="mt-2" />
+                                {(!element.imageSrc || !element.imageFullField) && (
+                                  ["heading", "paragraph"].includes(element.type) ? (
+                                    element.type === "heading" ? (
+                                      <h3 className="text-lg font-semibold">{element.label}</h3>
                                     ) : (
-                                      <Input
-                                        type={element.type}
-                                        placeholder={element.placeholder}
-                                        className="mt-2"
-                                      />
-                                    )}
-                                  </>
+                                      <p className="text-gray-600">{element.label}</p>
+                                    )
+                                  ) : (
+                                    <>
+                                      {element.type === "textarea" ? (
+                                        <Textarea placeholder={element.placeholder} className="mt-2" />
+                                      ) : (
+                                        <Input
+                                          type={element.type}
+                                          placeholder={element.placeholder}
+                                          className="mt-2"
+                                        />
+                                      )}
+                                    </>
+                                  )
                                 )}
                               </div>
                             </Card>
