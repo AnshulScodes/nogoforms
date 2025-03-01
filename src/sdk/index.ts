@@ -1,4 +1,3 @@
-
 /**
  * Main SDK entry point
  * Exports all SDK components and provides usage examples
@@ -7,6 +6,32 @@
 export * from './FormBlockSDK';
 export * from './FormBuilderSDK';
 export * from './FormRunnerSDK';
+
+export type FormBlock = {
+  id: string;
+  type: "text" | "email" | "number" | "textarea" | "select" | "checkbox" | "radio" | "date" | "time" | "tel" | "url" | "password" | "file" | "range" | "color" | "heading" | "paragraph";
+  label: string;
+  placeholder?: string;
+  required?: boolean;
+  options?: string[];
+  validation?: {
+    min?: number;
+    max?: number;
+    minLength?: number;
+    maxLength?: number;
+    pattern?: string;
+    customMessage?: string;
+  };
+  helpText?: string;
+  defaultValue?: string | number | boolean;
+  imageSrc?: string;
+  imagePosition?: "left" | "right";
+  imageSize?: "small" | "medium" | "large";
+  // New properties for grid layout
+  columnWidth?: string; // "1", "1/2", "1/3", "2/3", "1/4", "3/4"
+  rowIndex?: number;
+  height?: "auto" | "small" | "medium" | "large";
+};
 
 /**
  * Example usage of the Form Builder SDK:
