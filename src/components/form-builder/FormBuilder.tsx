@@ -222,6 +222,8 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
   // Add a function to delete a row from the grid
   const deleteGridRow = (rowIndex: number) => {
     console.log(`🗑️ Deleting row ${rowIndex}...`);
+    
+    // Remove elements in this row
     const newElements = elements.filter(element => element.rowIndex !== rowIndex);
     
     // Update rowIndex for elements in rows after the deleted row
@@ -232,7 +234,14 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
       return element;
     });
     
+    // Update elements state
     setElements(updatedElements);
+    
+    // Call the GridLayout's deleteRow function through the ref
+    if (gridLayoutRef.current && gridLayoutRef.current.deleteRow) {
+      gridLayoutRef.current.deleteRow(rowIndex);
+    }
+    
     console.log(`✅ Deleted row ${rowIndex} 🗑️`);
   };
 
@@ -331,18 +340,6 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
   const addNewRow = () => {
     // Get the next row index
     const newRowIndex = Math.max(...elements.map(e => e.rowIndex || 0), 0) + 1;
-    
-    // Create a placeholder element for the new row to ensure it appears
-    const placeholderElement: FormBlock = {
-      id: crypto.randomUUID(),
-      type: "hidden",
-      label: "Row Placeholder",
-      rowIndex: newRowIndex,
-      colIndex: 0,
-    };
-    
-    // Add the placeholder to elements
-    setElements([...elements, placeholderElement]);
     
     // Set current row for context
     setCurrentRow(newRowIndex);

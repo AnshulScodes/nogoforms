@@ -34,7 +34,7 @@ const GRID_TEMPLATES = {
   "1-1-2": [1, 1, 2],
 };
 
-const GridLayout = forwardRef<{ addRow: (template?: string) => void }, GridLayoutProps>(({
+const GridLayout = forwardRef<{ addRow: (template?: string) => void; deleteRow: (rowIndex: number) => void }, GridLayoutProps>(({
   elements,
   onAddElement,
   onDeleteRow,
@@ -54,9 +54,16 @@ const GridLayout = forwardRef<{ addRow: (template?: string) => void }, GridLayou
     setRows([...rows, newRow]);
   };
 
-  // Expose the addRow function via ref
+  const deleteRow = (rowIndex: number) => {
+    const newRows = [...rows];
+    newRows.splice(rowIndex, 1);
+    setRows(newRows);
+  };
+
+  // Expose the addRow and deleteRow functions via ref
   useImperativeHandle(ref, () => ({
-    addRow
+    addRow,
+    deleteRow
   }));
 
   const changeRowTemplate = (rowIndex: number, template: string) => {
@@ -118,7 +125,7 @@ const GridLayout = forwardRef<{ addRow: (template?: string) => void }, GridLayou
 
   return (
     <div className="space-y-6">
-      {getUniqueRowIndexes().map((rowIndex) => (
+      {rows.map((row, rowIndex) => (
         <div key={rowIndex} className="border border-dashed border-gray-300 p-4 rounded-lg">
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-4">
@@ -126,7 +133,7 @@ const GridLayout = forwardRef<{ addRow: (template?: string) => void }, GridLayou
               <div className="flex items-center gap-2">
                 <Label htmlFor={`template-${rowIndex}`} className="text-xs">Layout:</Label>
                 <Select
-                  value={rows[rowIndex]?.template || "1-column"}
+                  value={row.template}
                   onValueChange={(value) => changeRowTemplate(rowIndex, value)}
                 >
                   <SelectTrigger id={`template-${rowIndex}`} className="w-[140px]">
@@ -157,9 +164,9 @@ const GridLayout = forwardRef<{ addRow: (template?: string) => void }, GridLayou
           </div>
           
           <div className="grid gap-4" style={{ 
-            gridTemplateColumns: rows[rowIndex]?.cells.map(cell => `${cell}fr`).join(' ') || "1fr"
+            gridTemplateColumns: row.cells.map(cell => `${cell}fr`).join(' ') || "1fr"
           }}>
-            {rows[rowIndex]?.cells.map((_, colIndex) => {
+            {row.cells.map((_, colIndex) => {
               const element = getElementForCell(rowIndex, colIndex);
               const isEmpty = !element;
               
@@ -180,16 +187,6 @@ const GridLayout = forwardRef<{ addRow: (template?: string) => void }, GridLayou
           </div>
         </div>
       ))}
-      
-      <div className="flex justify-center mt-4">
-        <Button 
-          variant="outline" 
-          onClick={() => addRow()}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add New Row
-        </Button>
-      </div>
     </div>
   );
 });
