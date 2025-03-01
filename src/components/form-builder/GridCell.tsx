@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Settings, Trash2 } from "lucide-react";
@@ -41,6 +41,37 @@ const GridCell: React.FC<GridCellProps> = ({
   fieldGroups,
   isEmpty = true
 }) => {
+  const cellRef = useRef<HTMLDivElement>(null);
+  const [dropDirection, setDropDirection] = useState<"top" | "bottom">("bottom");
+  
+  // Determine dropdown direction based on position
+  useEffect(() => {
+    const updateDropDirection = () => {
+      if (cellRef.current) {
+        const rect = cellRef.current.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        const spaceBelow = viewportHeight - rect.bottom;
+        const spaceAbove = rect.top;
+        
+        // If there's more space above than below, or if there's not enough space below
+        if (spaceAbove > spaceBelow || spaceBelow < 300) {
+          setDropDirection("top");
+        } else {
+          setDropDirection("bottom");
+        }
+      }
+    };
+    
+    updateDropDirection();
+    window.addEventListener('scroll', updateDropDirection);
+    window.addEventListener('resize', updateDropDirection);
+    
+    return () => {
+      window.removeEventListener('scroll', updateDropDirection);
+      window.removeEventListener('resize', updateDropDirection);
+    };
+  }, []);
+
   // Render the field preview based on its type
   const renderFieldPreview = () => {
     if (!block) return null;
@@ -101,7 +132,7 @@ const GridCell: React.FC<GridCellProps> = ({
   };
 
   return (
-    <Card className={`p-4 min-h-[100px] ${isEmpty ? 'flex items-center justify-center' : ''}`}>
+    <Card ref={cellRef} className={`p-4 min-h-[100px] ${isEmpty ? 'flex items-center justify-center' : ''}`}>
       {isEmpty ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -110,7 +141,16 @@ const GridCell: React.FC<GridCellProps> = ({
               Add Field
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56">
+          <DropdownMenuContent 
+            className="w-56" 
+            align="center"
+            side={dropDirection}
+            sideOffset={5}
+            alignOffset={0}
+            avoidCollisions={true}
+            collisionPadding={10}
+            maxHeight={300}
+          >
             <DropdownMenuItem disabled className="font-semibold">Basic Fields</DropdownMenuItem>
             {fieldGroups.basic.map((type) => (
               <DropdownMenuItem key={type} onClick={() => onAddField(type as FormBlock["type"], rowIndex, colIndex)}>

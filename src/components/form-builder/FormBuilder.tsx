@@ -416,7 +416,16 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
                       Add Field
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-56">
+                  <DropdownMenuContent 
+                    className="w-56" 
+                    align="start"
+                    side="bottom"
+                    sideOffset={5}
+                    alignOffset={0}
+                    avoidCollisions={true}
+                    collisionPadding={10}
+                    maxHeight={300}
+                  >
                     <DropdownMenuItem disabled className="font-semibold">Basic Fields</DropdownMenuItem>
                     {FIELD_GROUPS.basic.map((type) => (
                       <DropdownMenuItem key={type} onClick={() => addElement(type as FormBlock["type"])}>
@@ -522,7 +531,7 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
                                         <Settings className="h-4 w-4" />
                                       </Button>
                                     </DialogTrigger>
-                                    <DialogContent className="max-w-2xl">
+                                    <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                                       <DialogHeader>
                                         <DialogTitle>Field Settings</DialogTitle>
                                       </DialogHeader>
