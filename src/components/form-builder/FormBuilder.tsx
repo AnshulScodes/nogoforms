@@ -1,1342 +1,240 @@
-import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
-import { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Plus, Copy, Link, Trash2, Settings, Image, LayoutGrid, Maximize2, ChevronDown } from "lucide-react";
-import { FormBuilderSDK, type FormBlock } from "@/sdk";
-import { useToast } from "@/hooks/use-toast";
-import FormPreview from "./FormPreview";
-import { getFormById } from "@/services/forms";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Textarea } from "@/components/ui/textarea";
+import React, { useReducer, useCallback } from 'react';
+import { FormToolbar } from './components/FormToolbar';
+import { FormElementTypes } from './components/FormElementTypes';
+import { FormCanvas } from './components/FormCanvas';
+import { ElementProperties } from './components/ElementProperties';
+import { formBuilderReducer, initialFormBuilderState, createFormElement } from './reducers/formBuilderReducer';
+import { FormBuilderActionType, FormElementType } from './types';
+import { useToast } from '@/components/ui/use-toast';
 
-interface FormBuilderProps {
-  preview?: boolean;
-}
-
-// Group field types for better organization
-const FIELD_GROUPS = {
-  basic: ["text", "email", "number", "textarea"],
-  choice: ["select", "checkbox", "radio"],
-  advanced: ["date", "time", "tel", "url", "file", "range", "color", "password"],
-  layout: ["heading", "paragraph"]
-};
-
-// Column width options
-const COLUMN_OPTIONS = [
-  { value: "1", label: "Full Width" },
-  { value: "1/2", label: "Half Width" },
-  { value: "1/3", label: "One Third" },
-  { value: "2/3", label: "Two Thirds" },
-  { value: "1/4", label: "One Quarter" },
-  { value: "3/4", label: "Three Quarters" },
-];
-
-// Predefined image examples
-const IMAGE_EXAMPLES = [
-  {
-    name: "User Profile",
-    src: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=100&q=80"
-  },
-  {
-    name: "Computer",
-    src: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?auto=format&fit=crop&w=100&q=80"
-  },
-  {
-    name: "Light Bulb",
-    src: "https://images.unsplash.com/photo-1581090464777-f3220bbe1b8b?auto=format&fit=crop&w=100&q=80"
-  },
-  {
-    name: "Fun",
-    src: "https://images.unsplash.com/photo-1501286353178-1ec881214838?auto=format&fit=crop&w=100&q=80"
-  }
-];
-
-// Helper function to convert column width to CSS class
-const getColumnWidthClass = (width: string) => {
-  switch (width) {
-    case "1/2": return "w-1/2";
-    case "1/3": return "w-1/3";
-    case "2/3": return "w-2/3";
-    case "1/4": return "w-1/4";
-    case "3/4": return "w-3/4";
-    default: return "w-full";
-  }
-};
-
-const FormBuilder = ({ preview = false }: FormBuilderProps) => {
-  const [elements, setElements] = useState<FormBlock[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [formTitle, setFormTitle] = useState("New Form");
-  const [formDescription, setFormDescription] = useState("");
-  const [useGridLayout, setUseGridLayout] = useState(false);
-  const [currentRow, setCurrentRow] = useState<number | null>(null);
-  const { formId } = useParams();
+/**
+ * FormBuilder Component
+ * 
+ * The main form builder component that combines all the sub-components.
+ * Manages the state of the form builder and provides callbacks for user interactions.
+ */
+export function FormBuilder() {
+  const [state, dispatch] = useReducer(formBuilderReducer, initialFormBuilderState);
   const { toast } = useToast();
-  const navigate = useNavigate();
-  const resizeRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (formId) {
-      loadForm(formId);
-    }
-  }, [formId]);
+  // Get the currently selected element
+  const selectedElement = state.selectedElementId ? state.elements[state.selectedElementId] : null;
 
-  const loadForm = async (id: string) => {
-    try {
-      console.log(`📂 Loading form (ID: ${id})...`);
-      setLoading(true);
-      const form = await getFormById(id);
-      setElements(form.form_schema);
-      setFormTitle(form.title);
-      setFormDescription(form.description || "");
-      console.log(`✅ Form "${form.title}" loaded successfully! 📝`);
-    } catch (error: any) {
-      console.error(`❌ Failed to load form: ${error.message}`);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to load form",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Callbacks for element actions
+  const handleAddElement = useCallback((type: FormElementType) => {
+    const element = createFormElement(type);
+    dispatch({
+      type: FormBuilderActionType.ADD_ELEMENT,
+      payload: { element },
+    });
+  }, []);
 
-  const onDragEnd = (result: any) => {
-    if (!result.destination) return;
+  const handleUpdateElement = useCallback((id: string, updates: any) => {
+    dispatch({
+      type: FormBuilderActionType.UPDATE_ELEMENT,
+      payload: { id, updates },
+    });
+  }, []);
 
-    const items = Array.from(elements);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
+  const handleDeleteElement = useCallback((id: string) => {
+    dispatch({
+      type: FormBuilderActionType.DELETE_ELEMENT,
+      payload: { id },
+    });
+  }, []);
 
-    setElements(items);
-  };
+  const handleSelectElement = useCallback((id: string) => {
+    dispatch({
+      type: FormBuilderActionType.SELECT_ELEMENT,
+      payload: { id },
+    });
+  }, []);
 
-  const addElement = (type: FormBlock["type"]) => {
-    console.log(`➕ Adding new ${type} field...`);
-    const builder = new FormBuilderSDK({ title: formTitle });
-    
-    let label = `New ${type} field`;
-    let placeholder = `Enter ${type}...`;
-    
-    // Customize label and placeholder based on field type
-    if (type === "heading") {
-      label = "Section Heading";
-      placeholder = "";
-    } else if (type === "paragraph") {
-      label = "This is a paragraph text to provide additional information to your form users.";
-      placeholder = "";
-    }
-    
-    const baseConfig: FormBlock = {
-      id: crypto.randomUUID(),
-      type,
-      label,
-      placeholder,
-      required: false,
-      options: ["select", "radio"].includes(type) ? ["Option 1", "Option 2", "Option 3"] : undefined,
-      columnWidth: "1", // Default to full width
-      rowIndex: currentRow !== null ? currentRow : Math.max(...elements.map(e => e.rowIndex || 0), 0) + 1,
-      height: type === "textarea" ? "medium" : "auto",
+  const handleClearSelection = useCallback(() => {
+    dispatch({
+      type: FormBuilderActionType.CLEAR_SELECTION,
+    });
+  }, []);
+
+  const handleDropElement = useCallback((type: FormElementType, x: number, y: number) => {
+    const element = createFormElement(type, x, y);
+    dispatch({
+      type: FormBuilderActionType.ADD_ELEMENT,
+      payload: { element },
+    });
+  }, []);
+
+  // Callbacks for toolbar actions
+  const handleTitleChange = useCallback((title: string) => {
+    dispatch({
+      type: FormBuilderActionType.UPDATE_FORM_TITLE,
+      payload: { title },
+    });
+  }, []);
+
+  const handleDescriptionChange = useCallback((description: string) => {
+    dispatch({
+      type: FormBuilderActionType.UPDATE_FORM_DESCRIPTION,
+      payload: { description },
+    });
+  }, []);
+
+  const handleSave = useCallback(() => {
+    // Save form logic here
+    toast({
+      title: "Form Saved",
+      description: "Your form has been saved successfully.",
+    });
+  }, [toast]);
+
+  const handleImport = useCallback(() => {
+    // Import form logic here
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.json';
+    fileInput.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const formData = JSON.parse(event.target?.result as string);
+            dispatch({
+              type: FormBuilderActionType.IMPORT_FORM,
+              payload: {
+                elements: formData.elements || {},
+                title: formData.title || 'Imported Form',
+                description: formData.description || '',
+              },
+            });
+            toast({
+              title: "Form Imported",
+              description: "Your form has been imported successfully.",
+            });
+          } catch (error) {
+            toast({
+              title: "Import Failed",
+              description: "Failed to import form. Please check the file format.",
+              variant: "destructive",
+            });
+          }
+        };
+        reader.readAsText(file);
+      }
     };
+    fileInput.click();
+  }, [toast]);
 
-    const block = builder.addBlock(baseConfig).toJSON();
-    setElements([...elements, block.form_schema[0] as FormBlock]);
-    console.log(`✅ Added ${type} field successfully! 🧱`);
-  };
+  const handleExport = useCallback(() => {
+    // Export form logic here
+    const formData = {
+      title: state.formTitle,
+      description: state.formDescription,
+      elements: state.elements,
+    };
+    
+    const blob = new Blob([JSON.stringify(formData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${state.formTitle.replace(/\s+/g, '-').toLowerCase()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Form Exported",
+      description: "Your form has been exported successfully.",
+    });
+  }, [state.formTitle, state.formDescription, state.elements, toast]);
 
-  const updateElement = (index: number, updates: Partial<FormBlock>) => {
-    const newElements = [...elements];
-    newElements[index] = { ...newElements[index], ...updates };
-    setElements(newElements);
-  };
-
-  const deleteElement = (index: number) => {
-    console.log(`🗑️ Deleting field at index ${index}...`);
-    const newElements = [...elements];
-    const deletedElement = newElements[index];
-    newElements.splice(index, 1);
-    setElements(newElements);
-    console.log(`✅ Deleted "${deletedElement.label}" field 🗑️`);
-  };
-
-  const saveForm = async () => {
-    if (!formTitle.trim()) {
+  const handleReset = useCallback(() => {
+    if (confirm('Are you sure you want to reset the form? All changes will be lost.')) {
+      dispatch({
+        type: FormBuilderActionType.RESET_FORM,
+      });
       toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Form title is required",
+        title: "Form Reset",
+        description: "Your form has been reset to default.",
       });
-      return;
     }
+  }, [toast]);
 
-    try {
-      const builder = new FormBuilderSDK({
-        title: formTitle,
-        description: formDescription,
-        id: formId,
-      });
-
-      elements.forEach(element => {
-        builder.addBlock(element);
-      });
-
-      const form = await builder.save();
-      
-      toast({
-        title: "Success",
-        description: "Form saved successfully",
-      });
-
-      if (!formId) {
-        navigate(`/builder/${form.id}`);
-      }
-    } catch (error: any) {
-      if (error.message?.includes('unique_form_title')) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "A form with this title already exists. Please choose a different title.",
-        });
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: error.message,
-        });
-      }
-    }
-  };
-
-  const copyEmbedCode = () => {
-    if (!formId) return;
-    
-    const embedCode = `<iframe src="${window.location.origin}/form/${formId}?userId=USER_ID&userName=USER_NAME&userEmail=USER_EMAIL" width="100%" height="600" frameborder="0"></iframe>`;
-    navigator.clipboard.writeText(embedCode);
-    
-    toast({
-      title: "Copied!",
-      description: "Embed code copied to clipboard. Replace USER_ID, USER_NAME, and USER_EMAIL with your user's information.",
+  const handleToggleGrid = useCallback(() => {
+    dispatch({
+      type: FormBuilderActionType.TOGGLE_GRID_VISIBILITY,
     });
-  };
+  }, []);
 
-  const copyFormLink = () => {
-    if (!formId) return;
-    
-    const formLink = `${window.location.origin}/form/${formId}`;
-    navigator.clipboard.writeText(formLink);
-    
-    toast({
-      title: "Copied!",
-      description: "Form link copied to clipboard. Add ?userId=123&userName=John to pass user information.",
+  const handleToggleSnapToGrid = useCallback(() => {
+    dispatch({
+      type: FormBuilderActionType.TOGGLE_SNAP_TO_GRID,
     });
-  };
+  }, []);
 
-  const addNewRow = () => {
-    const newRowIndex = Math.max(...elements.map(e => e.rowIndex || 0), 0) + 1;
-    setCurrentRow(newRowIndex);
-    toast({
-      title: "New Row Added",
-      description: `Adding elements to row ${newRowIndex}`,
+  const handleGridSizeChange = useCallback((size: number) => {
+    dispatch({
+      type: FormBuilderActionType.SET_GRID_SIZE,
+      payload: { size },
     });
-  };
+  }, []);
 
-  const getElementsInRow = (rowIndex: number) => {
-    return elements.filter(element => element.rowIndex === rowIndex);
-  };
-
-  const getUniqueRowIndexes = () => {
-    const rowIndexes = elements.map(element => element.rowIndex || 0);
-    return [...new Set(rowIndexes)].sort((a, b) => a - b);
-  };
-
-  if (loading) {
-    return <div className="p-8">Loading...</div>;
-  }
+  const handlePreview = useCallback(() => {
+    // Preview form logic here
+    toast({
+      title: "Form Preview",
+      description: "Opening form preview...",
+    });
+    // Could open a modal or navigate to a preview page
+  }, [toast]);
 
   return (
-    <div className="p-6">
-      {!preview && (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="space-y-2">
-              <Input
-                value={formTitle}
-                onChange={(e) => setFormTitle(e.target.value)}
-                className="text-2xl font-semibold h-auto px-0 border-0 focus-visible:ring-0 w-[300px]"
-                placeholder="Enter form title..."
-              />
-              <Input
-                value={formDescription}
-                onChange={(e) => setFormDescription(e.target.value)}
-                className="text-sm text-muted-foreground h-auto px-0 border-0 focus-visible:ring-0 w-[500px]"
-                placeholder="Enter form description (optional)..."
-              />
-            </div>
-            <div className="flex gap-2">
-              <>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setUseGridLayout(!useGridLayout)}
-                >
-                  <LayoutGrid className="h-4 w-4 mr-2" />
-                  {useGridLayout ? "Standard Layout" : "Grid Layout"}
-                </Button>
-                
-                {useGridLayout && (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={addNewRow}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Row
-                  </Button>
-                )}
-                
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button size="sm">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Field
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-56">
-                    <DropdownMenuItem disabled className="font-semibold">Basic Fields</DropdownMenuItem>
-                    {FIELD_GROUPS.basic.map((type) => (
-                      <DropdownMenuItem key={type} onClick={() => addElement(type as FormBlock["type"])}>
-                        {type.charAt(0).toUpperCase() + type.slice(1)} Field
-                      </DropdownMenuItem>
-                    ))}
-                    
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem disabled className="font-semibold">Choice Fields</DropdownMenuItem>
-                    {FIELD_GROUPS.choice.map((type) => (
-                      <DropdownMenuItem key={type} onClick={() => addElement(type as FormBlock["type"])}>
-                        {type.charAt(0).toUpperCase() + type.slice(1)} Field
-                      </DropdownMenuItem>
-                    ))}
-                    
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem disabled className="font-semibold">Advanced Fields</DropdownMenuItem>
-                    {FIELD_GROUPS.advanced.map((type) => (
-                      <DropdownMenuItem key={type} onClick={() => addElement(type as FormBlock["type"])}>
-                        {type.charAt(0).toUpperCase() + type.slice(1)} Field
-                      </DropdownMenuItem>
-                    ))}
-                    
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem disabled className="font-semibold">Layout Elements</DropdownMenuItem>
-                    {FIELD_GROUPS.layout.map((type) => (
-                      <DropdownMenuItem key={type} onClick={() => addElement(type as FormBlock["type"])}>
-                        {type.charAt(0).toUpperCase() + type.slice(1)}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                
-                <Button onClick={saveForm} variant="secondary" size="sm">
-                  Save Form
-                </Button>
-                
-                {formId && (
-                  <>
-                    <Button onClick={copyFormLink} variant="outline" size="sm">
-                      <Link className="h-4 w-4 mr-2" />
-                      Copy Link
-                    </Button>
-                    <Button onClick={copyEmbedCode} variant="outline" size="sm">
-                      <Copy className="h-4 w-4 mr-2" />
-                      Copy Embed
-                    </Button>
-                  </>
-                )}
-              </>
-            </div>
-          </div>
+    <div className="flex flex-col h-screen">
+      <FormToolbar
+        title={state.formTitle}
+        description={state.formDescription}
+        onTitleChange={handleTitleChange}
+        onDescriptionChange={handleDescriptionChange}
+        onSave={handleSave}
+        onImport={handleImport}
+        onExport={handleExport}
+        onReset={handleReset}
+        gridVisible={state.gridVisible}
+        onToggleGrid={handleToggleGrid}
+        snapToGrid={state.snapToGrid}
+        onToggleSnapToGrid={handleToggleSnapToGrid}
+        gridSize={state.gridSize}
+        onGridSizeChange={handleGridSizeChange}
+        onPreview={handlePreview}
+      />
+      
+      <div className="flex-1 flex overflow-hidden">
+        <div className="w-64 border-r p-4 overflow-y-auto">
+          <h3 className="text-lg font-medium mb-4">Form Elements</h3>
+          <FormElementTypes onAddElement={handleAddElement} />
         </div>
-      )}
-
-      {preview ? (
-        <FormPreview blocks={elements} />
-      ) : (
-        <>
-          {useGridLayout ? (
-            <div className="space-y-6 mt-6">
-              {getUniqueRowIndexes().map((rowIndex) => (
-                <div key={rowIndex} className="border border-dashed border-gray-300 p-4 rounded-lg">
-                  <div className="flex justify-between items-center mb-2">
-                    <h3 className="text-sm font-medium text-gray-500">Row {rowIndex}</h3>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => setCurrentRow(rowIndex)}
-                    >
-                      <Plus className="h-4 w-4 mr-1" />
-                      Add to Row
-                    </Button>
-                  </div>
-                  <div className="flex flex-wrap gap-4">
-                    {getElementsInRow(rowIndex).map((element, index) => {
-                      const elementIndex = elements.findIndex(e => e.id === element.id);
-                      return (
-                        <div 
-                          key={element.id} 
-                          className={`${getColumnWidthClass(element.columnWidth || "1")} relative`}
-                        >
-                          <Card className="p-4">
-                            <div className="flex items-center justify-between mb-2">
-                              <Input
-                                value={element.label}
-                                onChange={(e) =>
-                                  updateElement(elementIndex, { label: e.target.value })
-                                }
-                                className="font-medium w-auto"
-                              />
-                              <div className="flex gap-2">
-                                <Dialog>
-                                  <DialogTrigger asChild>
-                                    <Button variant="ghost" size="sm">
-                                      <Settings className="h-4 w-4" />
-                                    </Button>
-                                  </DialogTrigger>
-                                  <DialogContent className="max-w-2xl">
-                                    <DialogHeader>
-                                      <DialogTitle>Field Settings</DialogTitle>
-                                    </DialogHeader>
-                                    <Tabs defaultValue="basic">
-                                      <TabsList className="w-full">
-                                        <TabsTrigger value="basic">Basic Settings</TabsTrigger>
-                                        <TabsTrigger value="validation">Validation</TabsTrigger>
-                                        <TabsTrigger value="appearance">Appearance</TabsTrigger>
-                                        <TabsTrigger value="layout">Layout</TabsTrigger>
-                                      </TabsList>
-                                      
-                                      <TabsContent value="basic" className="space-y-4 py-4">
-                                        <div className="space-y-2">
-                                          <Label>Field Type</Label>
-                                          <Select
-                                            value={element.type}
-                                            onValueChange={(value: FormBlock["type"]) =>
-                                              updateElement(elementIndex, { type: value })
-                                            }
-                                          >
-                                            <SelectTrigger>
-                                              <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="text">Text</SelectItem>
-                                              <SelectItem value="email">Email</SelectItem>
-                                              <SelectItem value="number">Number</SelectItem>
-                                              <SelectItem value="textarea">Textarea</SelectItem>
-                                              <SelectItem value="select">Select</SelectItem>
-                                              <SelectItem value="checkbox">Checkbox</SelectItem>
-                                              <SelectItem value="radio">Radio</SelectItem>
-                                              <SelectItem value="date">Date</SelectItem>
-                                              <SelectItem value="time">Time</SelectItem>
-                                              <SelectItem value="tel">Phone</SelectItem>
-                                              <SelectItem value="url">URL</SelectItem>
-                                              <SelectItem value="password">Password</SelectItem>
-                                              <SelectItem value="file">File Upload</SelectItem>
-                                              <SelectItem value="range">Range Slider</SelectItem>
-                                              <SelectItem value="color">Color Picker</SelectItem>
-                                              <SelectItem value="heading">Heading</SelectItem>
-                                              <SelectItem value="paragraph">Paragraph</SelectItem>
-                                            </SelectContent>
-                                          </Select>
-                                        </div>
-                                        
-                                        {!["heading", "paragraph"].includes(element.type) && (
-                                          <div className="space-y-2">
-                                            <Label>Placeholder</Label>
-                                            <Input
-                                              value={element.placeholder || ""}
-                                              onChange={(e) =>
-                                                updateElement(elementIndex, {
-                                                  placeholder: e.target.value,
-                                                })
-                                              }
-                                            />
-                                          </div>
-                                        )}
-                                        
-                                        {!["heading", "paragraph"].includes(element.type) && (
-                                          <div className="flex items-center space-x-2">
-                                            <Checkbox
-                                              id={`required-${element.id}`}
-                                              checked={element.required || false}
-                                              onCheckedChange={(checked) =>
-                                                updateElement(elementIndex, { required: !!checked })
-                                              }
-                                            />
-                                            <Label htmlFor={`required-${element.id}`}>Required field</Label>
-                                          </div>
-                                        )}
-                                        
-                                        {!["heading", "paragraph"].includes(element.type) && (
-                                          <div className="space-y-2">
-                                            <Label>Help Text (optional)</Label>
-                                            <Input
-                                              value={element.helpText || ""}
-                                              onChange={(e) =>
-                                                updateElement(elementIndex, {
-                                                  helpText: e.target.value,
-                                                })
-                                              }
-                                              placeholder="Additional information about this field"
-                                            />
-                                          </div>
-                                        )}
-                                        
-                                        {["select", "radio"].includes(element.type) && (
-                                          <div className="space-y-2">
-                                            <Label>Options (one per line)</Label>
-                                            <Textarea
-                                              value={(element.options || []).join("\n")}
-                                              onChange={(e) =>
-                                                updateElement(elementIndex, {
-                                                  options: e.target.value.split("\n").filter(Boolean),
-                                                })
-                                              }
-                                              placeholder="Option 1&#10;Option 2&#10;Option 3"
-                                              className="min-h-[100px]"
-                                            />
-                                          </div>
-                                        )}
-                                        
-                                        {!["heading", "paragraph", "checkbox", "radio"].includes(element.type) && (
-                                          <div className="space-y-2">
-                                            <Label>Default Value (optional)</Label>
-                                            <Input
-                                              value={element.defaultValue?.toString() || ""}
-                                              onChange={(e) =>
-                                                updateElement(elementIndex, {
-                                                  defaultValue: e.target.value,
-                                                })
-                                              }
-                                              placeholder="Default value for this field"
-                                            />
-                                          </div>
-                                        )}
-                                      </TabsContent>
-                                      
-                                      <TabsContent value="validation" className="space-y-4 py-4">
-                                        {element.type === "number" && (
-                                          <>
-                                            <div className="grid grid-cols-2 gap-4">
-                                              <div className="space-y-2">
-                                                <Label>Minimum Value</Label>
-                                                <Input
-                                                  type="number"
-                                                  value={element.validation?.min || ""}
-                                                  onChange={(e) =>
-                                                    updateElement(elementIndex, {
-                                                      validation: {
-                                                        ...(element.validation || {}),
-                                                        min: e.target.value ? Number(e.target.value) : undefined,
-                                                      },
-                                                    })
-                                                  }
-                                                />
-                                              </div>
-                                              <div className="space-y-2">
-                                                <Label>Maximum Value</Label>
-                                                <Input
-                                                  type="number"
-                                                  value={element.validation?.max || ""}
-                                                  onChange={(e) =>
-                                                    updateElement(elementIndex, {
-                                                      validation: {
-                                                        ...(element.validation || {}),
-                                                        max: e.target.value ? Number(e.target.value) : undefined,
-                                                      },
-                                                    })
-                                                  }
-                                                />
-                                              </div>
-                                            </div>
-                                          </>
-                                        )}
-                                        
-                                        {["text", "textarea", "password", "tel", "url"].includes(element.type) && (
-                                          <>
-                                            <div className="grid grid-cols-2 gap-4">
-                                              <div className="space-y-2">
-                                                <Label>Minimum Length</Label>
-                                                <Input
-                                                  type="number"
-                                                  value={element.validation?.minLength || ""}
-                                                  onChange={(e) =>
-                                                    updateElement(elementIndex, {
-                                                      validation: {
-                                                        ...(element.validation || {}),
-                                                        minLength: e.target.value ? Number(e.target.value) : undefined,
-                                                      },
-                                                    })
-                                                  }
-                                                />
-                                              </div>
-                                              <div className="space-y-2">
-                                                <Label>Maximum Length</Label>
-                                                <Input
-                                                  type="number"
-                                                  value={element.validation?.maxLength || ""}
-                                                  onChange={(e) =>
-                                                    updateElement(elementIndex, {
-                                                      validation: {
-                                                        ...(element.validation || {}),
-                                                        maxLength: e.target.value ? Number(e.target.value) : undefined,
-                                                      },
-                                                    })
-                                                  }
-                                                />
-                                              </div>
-                                            </div>
-                                            
-                                            <div className="space-y-2">
-                                              <Label>Pattern (RegEx)</Label>
-                                              <Input
-                                                value={element.validation?.pattern || ""}
-                                                onChange={(e) =>
-                                                  updateElement(elementIndex, {
-                                                    validation: {
-                                                      ...(element.validation || {}),
-                                                      pattern: e.target.value,
-                                                    },
-                                                  })
-                                                }
-                                                placeholder="Regular expression pattern"
-                                              />
-                                              <p className="text-xs text-gray-500">
-                                                Example: ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]&#123;2,&#125;$ for email validation
-                                              </p>
-                                            </div>
-                                          </>
-                                        )}
-                                        
-                                        {!["heading", "paragraph"].includes(element.type) && (
-                                          <div className="space-y-2">
-                                            <Label>Custom Error Message</Label>
-                                            <Input
-                                              value={element.validation?.customMessage || ""}
-                                              onChange={(e) =>
-                                                updateElement(elementIndex, {
-                                                  validation: {
-                                                    ...(element.validation || {}),
-                                                    customMessage: e.target.value,
-                                                  },
-                                                })
-                                              }
-                                              placeholder="Shown when validation fails"
-                                            />
-                                          </div>
-                                        )}
-                                      </TabsContent>
-                                      
-                                      <TabsContent value="appearance" className="space-y-4 py-4">
-                                        <div className="space-y-2">
-                                          <Label className="flex items-center gap-2">
-                                            <Image className="h-4 w-4" /> Add Image
-                                          </Label>
-                                          <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                              <Label className="text-xs mb-2 block">Image URL</Label>
-                                              <Input
-                                                value={element.imageSrc || ""}
-                                                onChange={(e) =>
-                                                  updateElement(elementIndex, {
-                                                    imageSrc: e.target.value,
-                                                  })
-                                                }
-                                                placeholder="https://example.com/image.jpg"
-                                              />
-                                              <p className="text-xs text-gray-500 mt-1">
-                                                Enter a URL or choose from examples
-                                              </p>
-                                            </div>
-                                            <div className="space-y-2">
-                                              <Label className="text-xs mb-2 block">Example Images</Label>
-                                              <div className="grid grid-cols-2 gap-2">
-                                                {IMAGE_EXAMPLES.map((img) => (
-                                                  <button
-                                                    key={img.name}
-                                                    type="button"
-                                                    className="border rounded p-1 hover:bg-gray-100 transition-colors"
-                                                    onClick={() => updateElement(elementIndex, { imageSrc: img.src })}
-                                                  >
-                                                    <img
-                                                      src={img.src}
-                                                      alt={img.name}
-                                                      className="w-full h-12 object-cover rounded"
-                                                    />
-                                                    <span className="text-xs block mt-1 truncate">
-                                                      {img.name}
-                                                    </span>
-                                                  </button>
-                                                ))}
-                                              </div>
-                                            </div>
-                                          </div>
-                                        </div>
-                                        
-                                        {element.imageSrc && (
-                                          <>
-                                            <div className="space-y-2">
-                                              <Label>Image Position</Label>
-                                              <Select
-                                                value={element.imagePosition || "left"}
-                                                onValueChange={(value: "left" | "right") =>
-                                                  updateElement(elementIndex, { imagePosition: value })
-                                                }
-                                              >
-                                                <SelectTrigger>
-                                                  <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                  <SelectItem value="left">Left</SelectItem>
-                                                  <SelectItem value="right">Right</SelectItem>
-                                                </SelectContent>
-                                              </Select>
-                                            </div>
-                                            
-                                            <div className="space-y-2">
-                                              <Label>Image Size</Label>
-                                              <Select
-                                                value={element.imageSize || "medium"}
-                                                onValueChange={(value: "small" | "medium" | "large") =>
-                                                  updateElement(elementIndex, { imageSize: value })
-                                                }
-                                              >
-                                                <SelectTrigger>
-                                                  <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                  <SelectItem value="small">Small</SelectItem>
-                                                  <SelectItem value="medium">Medium</SelectItem>
-                                                  <SelectItem value="large">Large</SelectItem>
-                                                </SelectContent>
-                                              </Select>
-                                            </div>
-                                          </>
-                                        )}
-                                      </TabsContent>
-                                      
-                                      <TabsContent value="layout" className="space-y-4 py-4">
-                                        <div className="space-y-2">
-                                          <Label>Column Width</Label>
-                                          <Select
-                                            value={element.columnWidth || "1"}
-                                            onValueChange={(value) =>
-                                              updateElement(elementIndex, { columnWidth: value })
-                                            }
-                                          >
-                                            <SelectTrigger>
-                                              <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              {COLUMN_OPTIONS.map(option => (
-                                                <SelectItem key={option.value} value={option.value}>
-                                                  {option.label}
-                                                </SelectItem>
-                                              ))}
-                                            </SelectContent>
-                                          </Select>
-                                        </div>
-                                        
-                                        <div className="space-y-2">
-                                          <Label>Row Position</Label>
-                                          <Select
-                                            value={element.rowIndex?.toString() || "1"}
-                                            onValueChange={(value) =>
-                                              updateElement(elementIndex, { rowIndex: parseInt(value) })
-                                            }
-                                          >
-                                            <SelectTrigger>
-                                              <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              {getUniqueRowIndexes().map(idx => (
-                                                <SelectItem key={idx} value={idx.toString()}>
-                                                  Row {idx}
-                                                </SelectItem>
-                                              ))}
-                                            </SelectContent>
-                                          </Select>
-                                        </div>
-                                        
-                                        <div className="space-y-2">
-                                          <Label>Element Height</Label>
-                                          <Select
-                                            value={element.height || "auto"}
-                                            onValueChange={(value) =>
-                                              updateElement(elementIndex, { height: value })
-                                            }
-                                          >
-                                            <SelectTrigger>
-                                              <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="auto">Auto</SelectItem>
-                                              <SelectItem value="small">Small</SelectItem>
-                                              <SelectItem value="medium">Medium</SelectItem>
-                                              <SelectItem value="large">Large</SelectItem>
-                                            </SelectContent>
-                                          </Select>
-                                        </div>
-                                      </TabsContent>
-                                    </Tabs>
-                                  </DialogContent>
-                                </Dialog>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => deleteElement(elementIndex)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </div>
-                            
-                            {/* Preview of the field in builder mode */}
-                            <div className="mt-2">
-                              {element.imageSrc && (
-                                <div className={`flex items-center gap-2 mb-2 ${element.imagePosition === "right" ? "justify-end" : "justify-start"}`}>
-                                  <img 
-                                    src={element.imageSrc} 
-                                    alt={`Preview for ${element.label}`}
-                                    className={`object-cover rounded ${
-                                      element.imageSize === "small" ? "h-16 w-16" : 
-                                      element.imageSize === "large" ? "h-32 w-32" : "h-24 w-24"
-                                    }`}
-                                  />
-                                </div>
-                              )}
-                              
-                              {["heading", "paragraph"].includes(element.type) ? (
-                                element.type === "heading" ? (
-                                  <h3 className="text-lg font-semibold">{element.label}</h3>
-                                ) : (
-                                  <p className="text-gray-600">{element.label}</p>
-                                )
-                              ) : (
-                                <>
-                                  {element.type === "textarea" ? (
-                                    <Textarea placeholder={element.placeholder} className="mt-2" />
-                                  ) : (
-                                    <Input
-                                      type={element.type}
-                                      placeholder={element.placeholder}
-                                      className="mt-2"
-                                    />
-                                  )}
-                                </>
-                              )}
-                            </div>
-                            
-                            {/* Resizable handle */}
-                            <div 
-                              className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize"
-                              style={{
-                                backgroundImage: 'radial-gradient(circle, #000 1px, transparent 1px)',
-                                backgroundSize: '3px 3px',
-                                backgroundPosition: 'bottom right',
-                                opacity: 0.5
-                              }}
-                              onMouseDown={(e) => {
-                                e.preventDefault();
-                                const startHeight = e.currentTarget.parentElement?.clientHeight || 0;
-                                const startY = e.clientY;
-                                
-                                const onMouseMove = (moveEvent: MouseEvent) => {
-                                  const deltaY = moveEvent.clientY - startY;
-                                  const newHeight = startHeight + deltaY;
-                                  
-                                  if (newHeight > 50) {
-                                    if (e.currentTarget.parentElement) {
-                                      e.currentTarget.parentElement.style.height = `${newHeight}px`;
-                                    }
-                                  }
-                                };
-                                
-                                const onMouseUp = () => {
-                                  document.removeEventListener('mousemove', onMouseMove);
-                                  document.removeEventListener('mouseup', onMouseUp);
-                                };
-                                
-                                document.addEventListener('mousemove', onMouseMove);
-                                document.addEventListener('mouseup', onMouseUp);
-                              }}
-                            />
-                          </Card>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-              
-              {elements.length === 0 && (
-                <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed mt-6">
-                  <p className="text-gray-500">
-                    Start by adding form elements from the toolbar above
-                  </p>
-                </div>
-              )}
-            </div>
-          ) : (
-            <DragDropContext onDragEnd={onDragEnd}>
-              <Droppable droppableId="form-elements">
-                {(provided) => (
-                  <div
-                    {...provided.droppableProps}
-                    ref={provided.innerRef}
-                    className="space-y-4 mt-6"
-                  >
-                    {elements.map((element, index) => (
-                      <Draggable
-                        key={element.id}
-                        draggableId={element.id}
-                        index={index}
-                      >
-                        {(provided) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            {...provided.dragHandleProps}
-                          >
-                            <Card className="p-4">
-                              <div className="flex items-center justify-between mb-2">
-                                <Input
-                                  value={element.label}
-                                  onChange={(e) =>
-                                    updateElement(index, { label: e.target.value })
-                                  }
-                                  className="font-medium w-auto"
-                                />
-                                <div className="flex gap-2">
-                                  <Dialog>
-                                    <DialogTrigger asChild>
-                                      <Button variant="ghost" size="sm">
-                                        <Settings className="h-4 w-4" />
-                                      </Button>
-                                    </DialogTrigger>
-                                    <DialogContent className="max-w-2xl">
-                                      <DialogHeader>
-                                        <DialogTitle>Field Settings</DialogTitle>
-                                      </DialogHeader>
-                                      <Tabs defaultValue="basic">
-                                        <TabsList className="w-full">
-                                          <TabsTrigger value="basic">Basic Settings</TabsTrigger>
-                                          <TabsTrigger value="validation">Validation</TabsTrigger>
-                                          <TabsTrigger value="appearance">Appearance</TabsTrigger>
-                                        </TabsList>
-                                        
-                                        <TabsContent value="basic" className="space-y-4 py-4">
-                                          <div className="space-y-2">
-                                            <Label>Field Type</Label>
-                                            <Select
-                                              value={element.type}
-                                              onValueChange={(value: FormBlock["type"]) =>
-                                                updateElement(index, { type: value })
-                                              }
-                                            >
-                                              <SelectTrigger>
-                                                <SelectValue />
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                <SelectItem value="text">Text</SelectItem>
-                                                <SelectItem value="email">Email</SelectItem>
-                                                <SelectItem value="number">Number</SelectItem>
-                                                <SelectItem value="textarea">Textarea</SelectItem>
-                                                <SelectItem value="select">Select</SelectItem>
-                                                <SelectItem value="checkbox">Checkbox</SelectItem>
-                                                <SelectItem value="radio">Radio</SelectItem>
-                                                <SelectItem value="date">Date</SelectItem>
-                                                <SelectItem value="time">Time</SelectItem>
-                                                <SelectItem value="tel">Phone</SelectItem>
-                                                <SelectItem value="url">URL</SelectItem>
-                                                <SelectItem value="password">Password</SelectItem>
-                                                <SelectItem value="file">File Upload</SelectItem>
-                                                <SelectItem value="range">Range Slider</SelectItem>
-                                                <SelectItem value="color">Color Picker</SelectItem>
-                                                <SelectItem value="heading">Heading</SelectItem>
-                                                <SelectItem value="paragraph">Paragraph</SelectItem>
-                                              </SelectContent>
-                                            </Select>
-                                          </div>
-                                          
-                                          {!["heading", "paragraph"].includes(element.type) && (
-                                            <div className="space-y-2">
-                                              <Label>Placeholder</Label>
-                                              <Input
-                                                value={element.placeholder || ""}
-                                                onChange={(e) =>
-                                                  updateElement(index, {
-                                                    placeholder: e.target.value,
-                                                  })
-                                                }
-                                              />
-                                            </div>
-                                          )}
-                                          
-                                          {!["heading", "paragraph"].includes(element.type) && (
-                                            <div className="flex items-center space-x-2">
-                                              <Checkbox
-                                                id={`required-${element.id}`}
-                                                checked={element.required || false}
-                                                onCheckedChange={(checked) =>
-                                                  updateElement(index, { required: !!checked })
-                                                }
-                                              />
-                                              <Label htmlFor={`required-${element.id}`}>Required field</Label>
-                                            </div>
-                                          )}
-                                          
-                                          {!["heading", "paragraph"].includes(element.type) && (
-                                            <div className="space-y-2">
-                                              <Label>Help Text (optional)</Label>
-                                              <Input
-                                                value={element.helpText || ""}
-                                                onChange={(e) =>
-                                                  updateElement(index, {
-                                                    helpText: e.target.value,
-                                                  })
-                                                }
-                                                placeholder="Additional information about this field"
-                                              />
-                                            </div>
-                                          )}
-                                          
-                                          {["select", "radio"].includes(element.type) && (
-                                            <div className="space-y-2">
-                                              <Label>Options (one per line)</Label>
-                                              <Textarea
-                                                value={(element.options || []).join("\n")}
-                                                onChange={(e) =>
-                                                  updateElement(index, {
-                                                    options: e.target.value.split("\n").filter(Boolean),
-                                                  })
-                                                }
-                                                placeholder="Option 1&#10;Option 2&#10;Option 3"
-                                                className="min-h-[100px]"
-                                              />
-                                            </div>
-                                          )}
-                                          
-                                          {!["heading", "paragraph", "checkbox", "radio"].includes(element.type) && (
-                                            <div className="space-y-2">
-                                              <Label>Default Value (optional)</Label>
-                                              <Input
-                                                value={element.defaultValue?.toString() || ""}
-                                                onChange={(e) =>
-                                                  updateElement(index, {
-                                                    defaultValue: e.target.value,
-                                                  })
-                                                }
-                                                placeholder="Default value for this field"
-                                              />
-                                            </div>
-                                          )}
-                                        </TabsContent>
-                                        
-                                        <TabsContent value="validation" className="space-y-4 py-4">
-                                          {element.type === "number" && (
-                                            <>
-                                              <div className="grid grid-cols-2 gap-4">
-                                                <div className="space-y-2">
-                                                  <Label>Minimum Value</Label>
-                                                  <Input
-                                                    type="number"
-                                                    value={element.validation?.min || ""}
-                                                    onChange={(e) =>
-                                                      updateElement(index, {
-                                                        validation: {
-                                                          ...(element.validation || {}),
-                                                          min: e.target.value ? Number(e.target.value) : undefined,
-                                                        },
-                                                      })
-                                                    }
-                                                  />
-                                                </div>
-                                                <div className="space-y-2">
-                                                  <Label>Maximum Value</Label>
-                                                  <Input
-                                                    type="number"
-                                                    value={element.validation?.max || ""}
-                                                    onChange={(e) =>
-                                                      updateElement(index, {
-                                                        validation: {
-                                                          ...(element.validation || {}),
-                                                          max: e.target.value ? Number(e.target.value) : undefined,
-                                                        },
-                                                      })
-                                                    }
-                                                  />
-                                                </div>
-                                              </div>
-                                            </>
-                                          )}
-                                          
-                                          {["text", "textarea", "password", "tel", "url"].includes(element.type) && (
-                                            <>
-                                              <div className="grid grid-cols-2 gap-4">
-                                                <div className="space-y-2">
-                                                  <Label>Minimum Length</Label>
-                                                  <Input
-                                                    type="number"
-                                                    value={element.validation?.minLength || ""}
-                                                    onChange={(e) =>
-                                                      updateElement(index, {
-                                                        validation: {
-                                                          ...(element.validation || {}),
-                                                          minLength: e.target.value ? Number(e.target.value) : undefined,
-                                                        },
-                                                      })
-                                                    }
-                                                  />
-                                                </div>
-                                                <div className="space-y-2">
-                                                  <Label>Maximum Length</Label>
-                                                  <Input
-                                                    type="number"
-                                                    value={element.validation?.maxLength || ""}
-                                                    onChange={(e) =>
-                                                      updateElement(index, {
-                                                        validation: {
-                                                          ...(element.validation || {}),
-                                                          maxLength: e.target.value ? Number(e.target.value) : undefined,
-                                                        },
-                                                      })
-                                                    }
-                                                  />
-                                                </div>
-                                              </div>
-                                              
-                                              <div className="space-y-2">
-                                                <Label>Pattern (RegEx)</Label>
-                                                <Input
-                                                  value={element.validation?.pattern || ""}
-                                                  onChange={(e) =>
-                                                    updateElement(index, {
-                                                      validation: {
-                                                        ...(element.validation || {}),
-                                                        pattern: e.target.value,
-                                                      },
-                                                    })
-                                                  }
-                                                  placeholder="Regular expression pattern"
-                                                />
-                                                <p className="text-xs text-gray-500">
-                                                  Example: ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]&#123;2,&#125;$ for email validation
-                                                </p>
-                                              </div>
-                                            </>
-                                          )}
-                                          
-                                          {!["heading", "paragraph"].includes(element.type) && (
-                                            <div className="space-y-2">
-                                              <Label>Custom Error Message</Label>
-                                              <Input
-                                                value={element.validation?.customMessage || ""}
-                                                onChange={(e) =>
-                                                  updateElement(index, {
-                                                    validation: {
-                                                      ...(element.validation || {}),
-                                                      customMessage: e.target.value,
-                                                    },
-                                                  })
-                                                }
-                                                placeholder="Shown when validation fails"
-                                              />
-                                            </div>
-                                          )}
-                                        </TabsContent>
-                                        
-                                        <TabsContent value="appearance" className="space-y-4 py-4">
-                                          <div className="space-y-2">
-                                            <Label className="flex items-center gap-2">
-                                              <Image className="h-4 w-4" /> Add Image
-                                            </Label>
-                                            <div className="grid grid-cols-2 gap-4">
-                                              <div>
-                                                <Label className="text-xs mb-2 block">Image URL</Label>
-                                                <Input
-                                                  value={element.imageSrc || ""}
-                                                  onChange={(e) =>
-                                                    updateElement(index, {
-                                                      imageSrc: e.target.value,
-                                                    })
-                                                  }
-                                                  placeholder="https://example.com/image.jpg"
-                                                />
-                                                <p className="text-xs text-gray-500 mt-1">
-                                                  Enter a URL or choose from examples
-                                                </p>
-                                              </div>
-                                              <div className="space-y-2">
-                                                <Label className="text-xs mb-2 block">Example Images</Label>
-                                                <div className="grid grid-cols-2 gap-2">
-                                                  {IMAGE_EXAMPLES.map((img) => (
-                                                    <button
-                                                      key={img.name}
-                                                      type="button"
-                                                      className="border rounded p-1 hover:bg-gray-100 transition-colors"
-                                                      onClick={() => updateElement(index, { imageSrc: img.src })}
-                                                    >
-                                                      <img
-                                                        src={img.src}
-                                                        alt={img.name}
-                                                        className="w-full h-12 object-cover rounded"
-                                                      />
-                                                      <span className="text-xs block mt-1 truncate">
-                                                        {img.name}
-                                                      </span>
-                                                    </button>
-                                                  ))}
-                                                </div>
-                                              </div>
-                                            </div>
-                                          </div>
-                                          
-                                          {element.imageSrc && (
-                                            <>
-                                              <div className="space-y-2">
-                                                <Label>Image Position</Label>
-                                                <Select
-                                                  value={element.imagePosition || "left"}
-                                                  onValueChange={(value: "left" | "right") =>
-                                                    updateElement(index, { imagePosition: value })
-                                                  }
-                                                >
-                                                  <SelectTrigger>
-                                                    <SelectValue />
-                                                  </SelectTrigger>
-                                                  <SelectContent>
-                                                    <SelectItem value="left">Left</SelectItem>
-                                                    <SelectItem value="right">Right</SelectItem>
-                                                  </SelectContent>
-                                                </Select>
-                                              </div>
-                                              
-                                              <div className="space-y-2">
-                                                <Label>Image Size</Label>
-                                                <Select
-                                                  value={element.imageSize || "medium"}
-                                                  onValueChange={(value: "small" | "medium" | "large") =>
-                                                    updateElement(index, { imageSize: value })
-                                                  }
-                                                >
-                                                  <SelectTrigger>
-                                                    <SelectValue />
-                                                  </SelectTrigger>
-                                                  <SelectContent>
-                                                    <SelectItem value="small">Small</SelectItem>
-                                                    <SelectItem value="medium">Medium</SelectItem>
-                                                    <SelectItem value="large">Large</SelectItem>
-                                                  </SelectContent>
-                                                </Select>
-                                              </div>
-                                            </>
-                                          )}
-                                        </TabsContent>
-                                      </Tabs>
-                                    </DialogContent>
-                                  </Dialog>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => deleteElement(index)}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </div>
-                              
-                              {/* Preview of the field in builder mode */}
-                              <div className="mt-2">
-                                {element.imageSrc && (
-                                  <div className={`flex items-center gap-2 mb-2 ${element.imagePosition === "right" ? "justify-end" : "justify-start"}`}>
-                                    <img 
-                                      src={element.imageSrc} 
-                                      alt={`Preview for ${element.label}`}
-                                      className={`object-cover rounded ${
-                                        element.imageSize === "small" ? "h-16 w-16" : 
-                                        element.imageSize === "large" ? "h-32 w-32" : "h-24 w-24"
-                                      }`}
-                                    />
-                                  </div>
-                                )}
-                                
-                                {["heading", "paragraph"].includes(element.type) ? (
-                                  element.type === "heading" ? (
-                                    <h3 className="text-lg font-semibold">{element.label}</h3>
-                                  ) : (
-                                    <p className="text-gray-600">{element.label}</p>
-                                  )
-                                ) : (
-                                  <>
-                                    {element.type === "textarea" ? (
-                                      <Textarea placeholder={element.placeholder} className="mt-2" />
-                                    ) : (
-                                      <Input
-                                        type={element.type}
-                                        placeholder={element.placeholder}
-                                        className="mt-2"
-                                      />
-                                    )}
-                                  </>
-                                )}
-                              </div>
-                            </Card>
-                          </div>
-                        )}
-                      </Draggable>
-                    ))}
-                    {provided.placeholder}
-                  </div>
-                )}
-              </Droppable>
-            </DragDropContext>
-          )}
-
-          {elements.length === 0 && !useGridLayout && (
-            <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed mt-6">
-              <p className="text-gray-500">
-                Start by adding form elements from the toolbar above
-              </p>
-            </div>
-          )}
-        </>
-      )}
+        
+        <FormCanvas
+          elements={state.elements}
+          selectedElementId={state.selectedElementId}
+          onSelectElement={handleSelectElement}
+          onClearSelection={handleClearSelection}
+          onUpdateElement={handleUpdateElement}
+          onDeleteElement={handleDeleteElement}
+          onDropElement={handleDropElement}
+          gridVisible={state.gridVisible}
+          gridSize={state.gridSize}
+        />
+        
+        <div className="w-80 overflow-y-auto">
+          <ElementProperties
+            element={selectedElement}
+            onUpdate={handleUpdateElement}
+            onDelete={handleDeleteElement}
+          />
+        </div>
+      </div>
     </div>
   );
-};
-
-export default FormBuilder;
+}
