@@ -29,10 +29,6 @@ interface GridCellProps {
   onDeleteField?: (id: string) => void;
   fieldGroups: Record<string, string[]>;
   isEmpty?: boolean;
-  isHighlighted: boolean;
-  onDragOver: () => void;
-  onDragLeave: () => void;
-  onDrop: (elementId: string) => void;
 }
 
 const GridCell: React.FC<GridCellProps> = ({
@@ -43,11 +39,7 @@ const GridCell: React.FC<GridCellProps> = ({
   onUpdateField,
   onDeleteField,
   fieldGroups,
-  isEmpty = true,
-  isHighlighted,
-  onDragOver,
-  onDragLeave,
-  onDrop
+  isEmpty = true
 }) => {
   // Render the field preview based on its type
   const renderFieldPreview = () => {
@@ -221,4 +213,4 @@ const GridCell: React.FC<GridCellProps> = ({
   );
 };
 
-export default GridCell;
+export default GridCell; 

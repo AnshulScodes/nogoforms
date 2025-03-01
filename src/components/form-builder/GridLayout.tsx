@@ -1,4 +1,3 @@
-
 import React, { useState, forwardRef, useImperativeHandle } from 'react';
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2, Grid2X2, Grid3X3 } from "lucide-react";
@@ -46,7 +45,6 @@ const GridLayout = forwardRef<{ addRow: (template?: string) => void; deleteRow: 
   const [rows, setRows] = useState<Array<{ template: string, cells: number[] }>>([
     { template: "1-column", cells: [1] }
   ]);
-  const [draggedOver, setDraggedOver] = useState<{rowIndex: number, colIndex: number} | null>(null);
 
   const addRow = (template: string = "1-column") => {
     const newRow = {
@@ -120,24 +118,6 @@ const GridLayout = forwardRef<{ addRow: (template?: string) => void; deleteRow: 
     }
   };
 
-  // Handle drag over for visual feedback
-  const handleDragOver = (rowIndex: number, colIndex: number) => {
-    setDraggedOver({rowIndex, colIndex});
-  };
-
-  // Handle drag leave
-  const handleDragLeave = () => {
-    setDraggedOver(null);
-  };
-
-  // Handle drop for repositioning elements
-  const handleDrop = (rowIndex: number, colIndex: number, elementId: string) => {
-    if (onUpdateElement && elementId) {
-      onUpdateElement(elementId, { rowIndex, colIndex });
-    }
-    setDraggedOver(null);
-  };
-
   // Call ensureRows when elements change
   React.useEffect(() => {
     ensureRows();
@@ -189,7 +169,6 @@ const GridLayout = forwardRef<{ addRow: (template?: string) => void; deleteRow: 
             {row.cells.map((_, colIndex) => {
               const element = getElementForCell(rowIndex, colIndex);
               const isEmpty = !element;
-              const isActive = draggedOver?.rowIndex === rowIndex && draggedOver?.colIndex === colIndex;
               
               return (
                 <GridCell
@@ -202,10 +181,6 @@ const GridLayout = forwardRef<{ addRow: (template?: string) => void; deleteRow: 
                   onUpdateField={onUpdateElement}
                   onDeleteField={onDeleteElement}
                   fieldGroups={fieldGroups}
-                  isHighlighted={isActive}
-                  onDragOver={() => handleDragOver(rowIndex, colIndex)}
-                  onDragLeave={handleDragLeave}
-                  onDrop={(elementId) => handleDrop(rowIndex, colIndex, elementId)}
                 />
               );
             })}

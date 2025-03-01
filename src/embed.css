@@ -14,22 +14,3 @@ body.form-embed-view #root {
   height: auto;
   min-height: 0;
 }
-
-/* Ensure grid layouts work properly in embed view */
-body.form-embed-view .grid {
-  display: grid !important;
-}
-
-/* Remove any additional styling that might interfere with the form display */
-body.form-embed-view header,
-body.form-embed-view footer,
-body.form-embed-view aside {
-  display: none !important;
-}
-
-/* Ensure form container takes full width */
-body.form-embed-view form,
-body.form-embed-view .form-container {
-  width: 100% !important;
-  max-width: 100% !important;
-}
