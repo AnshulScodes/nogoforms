@@ -9,7 +9,7 @@ export * from './FormRunnerSDK';
 
 export type FormBlock = {
   id: string;
-  type: "text" | "email" | "number" | "textarea" | "select" | "checkbox" | "radio" | "date" | "time" | "tel" | "url" | "password" | "file" | "range" | "color" | "heading" | "paragraph";
+  type: "text" | "email" | "number" | "textarea" | "select" | "checkbox" | "radio" | "date" | "time" | "tel" | "url" | "password" | "file" | "range" | "color" | "heading" | "paragraph" | "hidden";
   label: string;
   placeholder?: string;
   required?: boolean;
@@ -27,10 +27,13 @@ export type FormBlock = {
   imageSrc?: string;
   imagePosition?: "left" | "right";
   imageSize?: "small" | "medium" | "large";
-  // New properties for grid layout
+  // Grid layout properties
   columnWidth?: string; // "1", "1/2", "1/3", "2/3", "1/4", "3/4"
   rowIndex?: number;
+  colIndex?: number; // New property for grid layout
   height?: "auto" | "small" | "medium" | "large";
+  gridSpan?: number; // How many columns this element spans
+  created_at?: string;
 };
 
 /**
