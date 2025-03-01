@@ -20,7 +20,8 @@ export type FormBlockType =
   "color" | 
   "time" | 
   "heading" | 
-  "paragraph";
+  "paragraph" |
+  "image";
 
 export interface FormBlockConfig {
   type: FormBlockType;
@@ -41,6 +42,9 @@ export interface FormBlockConfig {
   };
   helpText?: string;
   defaultValue?: string | number | boolean;
+  rowIndex?: number;
+  colIndex?: number;
+  columnWidth?: string;
 }
 
 export interface FormBlock extends FormBlockConfig {

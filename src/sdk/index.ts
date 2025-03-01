@@ -1,3 +1,4 @@
+
 /**
  * Main SDK entry point
  * Exports all SDK components and provides usage examples
@@ -9,7 +10,7 @@ export * from './FormRunnerSDK';
 
 export type FormBlock = {
   id: string;
-  type: "text" | "email" | "number" | "textarea" | "select" | "checkbox" | "radio" | "date" | "time" | "tel" | "url" | "password" | "file" | "range" | "color" | "heading" | "paragraph" | "hidden";
+  type: "text" | "email" | "number" | "textarea" | "select" | "checkbox" | "radio" | "date" | "time" | "tel" | "url" | "password" | "file" | "range" | "color" | "heading" | "paragraph" | "hidden" | "image";
   label: string;
   placeholder?: string;
   required?: boolean;
