@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/types/database";
 import type { FormBlockJson } from "@/types/forms";
@@ -61,6 +62,9 @@ export const getForm = async (formId: string): Promise<FormData> => {
   return convertFormSchema(data);
 };
 
+// Alias for compatibility with existing code
+export const getFormById = getForm;
+
 export const isUserFormAdmin = async (userId: string): Promise<boolean> => {
   if (!userId) return false;
   
@@ -99,13 +103,17 @@ export const getFormWithPermissionCheck = async (formId: string, userId: string)
 };
 
 export const createForm = async (form: FormData, userId: string): Promise<FormData> => {
+  // Convert FormBlock[] to Json for Supabase
+  const formSchemaJson = JSON.stringify(form.form_schema) as unknown as Json;
+  const settingsJson = form.settings ? JSON.stringify(form.settings) as unknown as Json : null;
+  
   const { data, error } = await supabase
     .from('forms')
     .insert({
       title: form.title,
       description: form.description || '',
-      form_schema: Array.isArray(form.form_schema) ? form.form_schema : [],
-      settings: form.settings || {},
+      form_schema: formSchemaJson,
+      settings: settingsJson,
       status: form.status || 'draft',
       owner_id: userId,
     })
@@ -120,13 +128,22 @@ export const createForm = async (form: FormData, userId: string): Promise<FormDa
 export const updateForm = async (formId: string, form: Partial<FormData>, userId: string): Promise<FormData> => {
   const isAdmin = await isUserFormAdmin(userId);
   
+  // Convert FormBlock[] to Json for Supabase if it exists
+  const formSchemaJson = form.form_schema 
+    ? JSON.stringify(form.form_schema) as unknown as Json 
+    : undefined;
+  
+  const settingsJson = form.settings 
+    ? JSON.stringify(form.settings) as unknown as Json 
+    : undefined;
+  
   let query = supabase
     .from('forms')
     .update({
       title: form.title,
       description: form.description,
-      form_schema: form.form_schema || [],
-      settings: form.settings || {},
+      form_schema: formSchemaJson,
+      settings: settingsJson,
       status: form.status,
     });
     
@@ -199,15 +216,15 @@ export const getFormResponses = async (formId: string): Promise<any[]> => {
     throw new Error("User not authenticated");
   }
 
-  const { data, error } = await supabase
+  const { data, error: formResponsesError } = await supabase
     .from('form_submissions')
     .select('*')
     .eq('form_id', formId)
     .order('created_at', { ascending: false });
 
-  if (error) {
-    console.error("Error fetching form responses:", error);
-    throw error;
+  if (formResponsesError) {
+    console.error("Error fetching form responses:", formResponsesError);
+    throw formResponsesError;
   }
 
   return data || [];
@@ -220,18 +237,18 @@ export const deleteForm = async (formId: string): Promise<void> => {
     throw new Error("User not authenticated");
   }
 
-  const { data, error } = await supabase
+  const { data: formData, error: formError } = await supabase
     .from('forms')
     .select('owner_id')
     .eq('id', formId)
     .single();
 
-  if (error) {
-    console.error("Error checking form ownership:", error);
-    throw error;
+  if (formError) {
+    console.error("Error checking form ownership:", formError);
+    throw formError;
   }
 
-  if (data.owner_id !== user.id) {
+  if (formData.owner_id !== user.id) {
     const { data: isAdmin } = await supabase
       .from('user_roles')
       .select('*')
@@ -254,13 +271,13 @@ export const deleteForm = async (formId: string): Promise<void> => {
     throw submissionsError;
   }
 
-  const { error } = await supabase
+  const { error: deleteError } = await supabase
     .from('forms')
     .delete()
     .eq('id', formId);
 
-  if (error) {
-    console.error("Error deleting form:", error);
-    throw error;
+  if (deleteError) {
+    console.error("Error deleting form:", deleteError);
+    throw deleteError;
   }
 };

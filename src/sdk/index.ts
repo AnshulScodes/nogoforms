@@ -1,80 +1,81 @@
-/**
- * Main SDK entry point
- * Exports all SDK components and provides usage examples
- */
 
-export * from './FormBlockSDK';
-export * from './FormBuilderSDK';
-export * from './FormRunnerSDK';
+import type { FormData } from '@/services/forms';
 
-export type FormBlock = {
+export type FormBlockType = 
+  "text" | 
+  "email" | 
+  "number" | 
+  "select" | 
+  "checkbox" | 
+  "radio" | 
+  "textarea" | 
+  "date" | 
+  "tel" | 
+  "url" | 
+  "password" | 
+  "range" | 
+  "file" | 
+  "hidden" | 
+  "color" | 
+  "time" | 
+  "heading" | 
+  "paragraph" |
+  "image";
+
+export interface FormBlock {
   id: string;
-  type: "text" | "email" | "number" | "textarea" | "select" | "checkbox" | "radio" | "date" | "time" | "tel" | "url" | "password" | "file" | "range" | "color" | "heading" | "paragraph" | "hidden";
+  type: FormBlockType;
   label: string;
   placeholder?: string;
   required?: boolean;
   options?: string[];
+  imageSrc?: string;
+  imagePosition?: "left" | "right";
+  imageSize?: "small" | "medium" | "large" | "full";
+  imageFullField?: boolean;
   validation?: {
+    pattern?: string;
     min?: number;
     max?: number;
     minLength?: number;
     maxLength?: number;
-    pattern?: string;
     customMessage?: string;
   };
   helpText?: string;
   defaultValue?: string | number | boolean;
-  imageSrc?: string;
-  imagePosition?: "left" | "right";
-  imageSize?: "small" | "medium" | "large";
-  imageFullField?: boolean;
-  // Grid layout properties
-  columnWidth?: string; // "1", "1/2", "1/3", "2/3", "1/4", "3/4"
   rowIndex?: number;
-  colIndex?: number; // New property for grid layout
-  height?: "auto" | "small" | "medium" | "large";
-  gridSpan?: number; // How many columns this element spans
-  created_at?: string;
-};
+  columnWidth?: string;
+  height?: string;
+}
 
-/**
- * Example usage of the Form Builder SDK:
- * 
- * 1. Create a new form
- * const builder = new FormBuilderSDK({
- *   title: "Contact Form",
- *   description: "Get in touch with us",
- * });
- * 
- * 2. Add form fields
- * builder
- *   .addBlock({
- *     type: "text",
- *     label: "Name",
- *     required: true,
- *   })
- *   .addBlock({
- *     type: "email",
- *     label: "Email",
- *     required: true,
- *     validation: {
- *       pattern: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",
- *     },
- *   });
- * 
- * 3. Save the form
- * const form = await builder.save();
- * 
- * 4. Create a form runner for submissions
- * const runner = new FormRunnerSDK(form);
- * 
- * 5. Handle form responses
- * runner
- *   .setResponse("block1", "John Doe")
- *   .setResponse("block2", "john@example.com");
- * 
- * 6. Validate and submit
- * if (runner.validate()) {
- *   await runner.submit();
- * }
- */
+export interface Form {
+  id: string;
+  title: string;
+  description?: string;
+  form_schema: FormBlock[];
+  settings?: {
+    theme?: string;
+    submitButtonText?: string;
+    showLabels?: boolean;
+    successMessage?: string;
+    redirectUrl?: string;
+    captcha?: boolean;
+    [key: string]: any;
+  };
+  status?: 'draft' | 'published' | 'archived';
+  created_at?: string;
+  updated_at?: string;
+  owner_id?: string;
+}
+
+// Type conversion helper
+export const convertFormDataToForm = (formData: FormData): Form => {
+  if (!formData.id) {
+    throw new Error('Form data must have an ID to be converted to a Form');
+  }
+  
+  return {
+    ...formData,
+    id: formData.id
+  } as Form;
+};

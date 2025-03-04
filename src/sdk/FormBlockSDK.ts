@@ -31,7 +31,7 @@ export interface FormBlockConfig {
   options?: string[];
   imageSrc?: string;
   imagePosition?: "left" | "right";
-  imageSize?: "small" | "medium" | "large";
+  imageSize?: "small" | "medium" | "large" | "full";
   imageFullField?: boolean;
   validation?: {
     pattern?: string;
