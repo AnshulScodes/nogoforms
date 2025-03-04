@@ -31,7 +31,7 @@ export interface FormBlockConfig {
   options?: string[];
   imageSrc?: string;
   imagePosition?: "left" | "right";
-  imageSize?: "small" | "medium" | "large" | "full"; // Updated to include 'full'
+  imageSize?: "small" | "medium" | "large" | "full";
   imageFullField?: boolean;
   validation?: {
     pattern?: string;
@@ -44,7 +44,7 @@ export interface FormBlockConfig {
   helpText?: string;
   defaultValue?: string | number | boolean;
   rowIndex?: number;
-  colIndex?: number; // Added colIndex property
+  colIndex?: number;
   columnWidth?: string;
   height?: string;
 }

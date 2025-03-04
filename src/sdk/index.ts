@@ -1,4 +1,3 @@
-
 import type { FormData } from '@/services/forms';
 
 export type FormBlockType = 
@@ -44,7 +43,7 @@ export interface FormBlock {
   helpText?: string;
   defaultValue?: string | number | boolean;
   rowIndex?: number;
-  colIndex?: number; // Added colIndex property
+  colIndex?: number;
   columnWidth?: string;
   height?: string;
 }
@@ -52,36 +51,31 @@ export interface FormBlock {
 export interface Form {
   id: string;
   title: string;
-  description?: string;
+  description: string | null;
   form_schema: FormBlock[];
-  settings?: {
-    theme?: string;
-    submitButtonText?: string;
-    showLabels?: boolean;
-    successMessage?: string;
-    redirectUrl?: string;
-    captcha?: boolean;
-    [key: string]: any;
-  };
-  status?: 'draft' | 'published' | 'archived';
-  created_at?: string;
-  updated_at?: string;
-  owner_id?: string;
+  settings: Record<string, any> | null;
+  status: string | null;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
-// Type conversion helper
 export const convertFormDataToForm = (formData: FormData): Form => {
   if (!formData.id) {
     throw new Error('Form data must have an ID to be converted to a Form');
   }
   
   return {
-    ...formData,
-    id: formData.id
-  } as Form;
+    id: formData.id,
+    title: formData.title,
+    description: formData.description || null,
+    form_schema: formData.form_schema || [],
+    settings: formData.settings || null,
+    status: formData.status || null,
+    created_at: formData.created_at || null,
+    updated_at: formData.updated_at || null
+  };
 };
 
-// Add FormBuilderSDK class
 import { createForm, updateForm } from '@/services/forms';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -121,3 +115,5 @@ export class FormBuilderSDK {
     }
   }
 }
+
+export { FormBuilderSDK };

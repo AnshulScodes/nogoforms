@@ -41,7 +41,8 @@ export default function PublicFormView() {
         const formData = await getFormById(formId);
         // Convert FormData to Form type
         if (formData && formData.id) {
-          setForm(convertFormDataToForm(formData));
+          const convertedForm = convertFormDataToForm(formData);
+          setForm(convertedForm);
         } else {
           throw new Error("Form data is incomplete");
         }

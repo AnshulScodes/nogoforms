@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { getFormById } from "@/services/forms";
-import { Form } from "@/types/forms";
+import type { Form } from "@/types/forms";
 import { Toaster } from "@/components/ui/toaster";
 import FormPreview from "@/components/form-builder/FormPreview";
 import { convertFormDataToForm } from "@/sdk";
@@ -41,7 +41,8 @@ export default function FormEmbed() {
         const formData = await getFormById(formId);
         // Convert FormData to Form type
         if (formData && formData.id) {
-          setForm(convertFormDataToForm(formData));
+          const convertedForm = convertFormDataToForm(formData);
+          setForm(convertedForm);
         } else {
           throw new Error("Form data is incomplete");
         }
