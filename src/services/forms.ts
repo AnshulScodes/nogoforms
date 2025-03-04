@@ -1,174 +1,176 @@
-
 import { supabase } from "@/integrations/supabase/client";
-import { FormBlock, FormBlockSDK } from "@/sdk";
+import type { Json } from "@/types/database";
+import type { FormBlockJson } from "@/types/forms";
+import { FormBlock } from "@/sdk/FormBlockSDK";
 
 export interface FormData {
   id?: string;
   title: string;
   description?: string;
   form_schema: FormBlock[];
-  owner_id?: string;
   settings?: {
-    success_message?: string;
-    redirect_url?: string;
-    email_notifications?: string[];
-    theme?: {
-      primary_color?: string;
-      font_family?: string;
-    };
+    theme?: string;
+    submitButtonText?: string;
+    showLabels?: boolean;
+    successMessage?: string;
+    redirectUrl?: string;
+    captcha?: boolean;
+    [key: string]: any;
   };
   status?: 'draft' | 'published' | 'archived';
   created_at?: string;
   updated_at?: string;
+  owner_id?: string;
 }
 
-export const createForm = async (form: FormData): Promise<FormData> => {
-  // Get current user id to set as owner
-  const { data: { user } } = await supabase.auth.getUser();
+const convertFormSchema = (form: any): FormData => {
+  let parsedForm = { ...form };
   
-  if (!user) {
-    throw new Error("User not authenticated");
+  if (typeof form.form_schema === 'string') {
+    try {
+      parsedForm.form_schema = JSON.parse(form.form_schema);
+    } catch (e) {
+      console.error('Error parsing form schema JSON:', e);
+      parsedForm.form_schema = [];
+    }
+  } else if (typeof form.form_schema === 'object' && !Array.isArray(form.form_schema)) {
+    parsedForm.form_schema = Object.values(form.form_schema || {});
   }
   
-  // Ensure form has an owner_id
-  form.owner_id = user.id;
-  
-  const { data, error } = await supabase
-    .from('forms')
-    .insert(form)
-    .select()
-    .single();
-
-  if (error) {
-    console.error("Error creating form:", error);
-    throw error;
+  if (typeof form.settings === 'string') {
+    try {
+      parsedForm.settings = JSON.parse(form.settings);
+    } catch (e) {
+      console.error('Error parsing settings JSON:', e);
+      parsedForm.settings = {};
+    }
   }
-
-  return data;
+  
+  return parsedForm as FormData;
 };
 
-export const updateForm = async (form: FormData): Promise<FormData> => {
-  if (!form.id) {
-    throw new Error("Form ID is required for updates");
-  }
-
-  // Get current user id to verify ownership
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) {
-    throw new Error("User not authenticated");
-  }
-
-  // First verify that the user owns this form
-  const { data: existingForm, error: checkError } = await supabase
+export const getForm = async (formId: string): Promise<FormData> => {
+  const { data, error } = await supabase
     .from('forms')
-    .select('owner_id')
-    .eq('id', form.id)
+    .select('*')
+    .eq('id', formId)
     .single();
+    
+  if (error) throw error;
+  
+  return convertFormSchema(data);
+};
 
-  if (checkError) {
-    console.error("Error checking form ownership:", checkError);
-    throw checkError;
-  }
-
-  // If user doesn't own this form and isn't admin, throw error
-  if (existingForm.owner_id !== user.id) {
-    // Check if user is admin
-    const { data: isAdmin } = await supabase
+export const isUserFormAdmin = async (userId: string): Promise<boolean> => {
+  if (!userId) return false;
+  
+  try {
+    const { data, error } = await supabase
       .from('user_roles')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .eq('role', 'admin')
       .maybeSingle();
       
-    if (!isAdmin) {
-      throw new Error("You don't have permission to update this form");
-    }
+    return !!data && !error;
+  } catch (error) {
+    console.error("Error checking admin status:", error);
+    return false;
   }
-
-  const { data, error } = await supabase
-    .from('forms')
-    .update(form)
-    .eq('id', form.id)
-    .select()
-    .single();
-
-  if (error) {
-    console.error("Error updating form:", error);
-    throw error;
-  }
-
-  return data;
 };
 
-export const getFormById = async (id: string): Promise<FormData> => {
-  const { data, error } = await supabase
+export const getFormWithPermissionCheck = async (formId: string, userId: string): Promise<FormData> => {
+  const isAdmin = await isUserFormAdmin(userId);
+  
+  let query = supabase
     .from('forms')
     .select('*')
-    .eq('id', id)
-    .single();
-
-  if (error) {
-    console.error("Error fetching form:", error);
-    throw error;
-  }
-
-  return data;
-};
-
-export const getUserForms = async (): Promise<FormData[]> => {
-  // Get current user id
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) {
-    throw new Error("User not authenticated");
-  }
-  
-  const { data, error } = await supabase
-    .from('forms')
-    .select('*')
-    .eq('owner_id', user.id)
-    .order('updated_at', { ascending: false });
-
-  if (error) {
-    console.error("Error fetching user forms:", error);
-    throw error;
-  }
-
-  return data || [];
-};
-
-export const getAllFormsForAdmin = async (): Promise<FormData[]> => {
-  // Get current user id
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) {
-    throw new Error("User not authenticated");
-  }
-  
-  // Check if user is admin
-  const { data: isAdmin } = await supabase
-    .from('user_roles')
-    .select('*')
-    .eq('user_id', user.id)
-    .eq('role', 'admin')
-    .maybeSingle();
+    .eq('id', formId);
     
   if (!isAdmin) {
-    throw new Error("Admin access required");
+    query = query.eq('owner_id', userId);
+  }
+  
+  const { data, error } = await query.single();
+  
+  if (error) throw error;
+  
+  return convertFormSchema(data);
+};
+
+export const createForm = async (form: FormData, userId: string): Promise<FormData> => {
+  const { data, error } = await supabase
+    .from('forms')
+    .insert({
+      title: form.title,
+      description: form.description || '',
+      form_schema: Array.isArray(form.form_schema) ? form.form_schema : [],
+      settings: form.settings || {},
+      status: form.status || 'draft',
+      owner_id: userId,
+    })
+    .select()
+    .single();
+    
+  if (error) throw error;
+  
+  return convertFormSchema(data);
+};
+
+export const updateForm = async (formId: string, form: Partial<FormData>, userId: string): Promise<FormData> => {
+  const isAdmin = await isUserFormAdmin(userId);
+  
+  let query = supabase
+    .from('forms')
+    .update({
+      title: form.title,
+      description: form.description,
+      form_schema: form.form_schema || [],
+      settings: form.settings || {},
+      status: form.status,
+    });
+    
+  if (!isAdmin) {
+    query = query.eq('owner_id', userId);
+  }
+  
+  const { data, error } = await query
+    .eq('id', formId)
+    .select()
+    .single();
+    
+  if (error) throw error;
+  
+  return convertFormSchema(data);
+};
+
+export const getUserForms = async (userId: string): Promise<FormData[]> => {
+  const { data, error } = await supabase
+    .from('forms')
+    .select('*')
+    .eq('owner_id', userId)
+    .order('updated_at', { ascending: false });
+    
+  if (error) throw error;
+  
+  return (data || []).map(convertFormSchema);
+};
+
+export const getAllFormsByAdmin = async (userId: string): Promise<FormData[]> => {
+  const isAdmin = await isUserFormAdmin(userId);
+  
+  if (!isAdmin) {
+    return getUserForms(userId);
   }
   
   const { data, error } = await supabase
     .from('forms')
     .select('*')
     .order('updated_at', { ascending: false });
-
-  if (error) {
-    console.error("Error fetching all forms:", error);
-    throw error;
-  }
-
-  return data || [];
+    
+  if (error) throw error;
+  
+  return (data || []).map(convertFormSchema);
 };
 
 export const submitFormResponse = async (
@@ -191,38 +193,10 @@ export const submitFormResponse = async (
 };
 
 export const getFormResponses = async (formId: string): Promise<any[]> => {
-  // Get current user id to verify ownership
   const { data: { user } } = await supabase.auth.getUser();
   
   if (!user) {
     throw new Error("User not authenticated");
-  }
-
-  // First verify that the user owns this form
-  const { data: form, error: checkError } = await supabase
-    .from('forms')
-    .select('owner_id')
-    .eq('id', formId)
-    .single();
-
-  if (checkError) {
-    console.error("Error checking form ownership:", checkError);
-    throw checkError;
-  }
-
-  // If user doesn't own this form and isn't admin, throw error
-  if (form.owner_id !== user.id) {
-    // Check if user is admin
-    const { data: isAdmin } = await supabase
-      .from('user_roles')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('role', 'admin')
-      .maybeSingle();
-      
-    if (!isAdmin) {
-      throw new Error("You don't have permission to view submissions for this form");
-    }
   }
 
   const { data, error } = await supabase
@@ -240,28 +214,24 @@ export const getFormResponses = async (formId: string): Promise<any[]> => {
 };
 
 export const deleteForm = async (formId: string): Promise<void> => {
-  // Get current user id to verify ownership
   const { data: { user } } = await supabase.auth.getUser();
   
   if (!user) {
     throw new Error("User not authenticated");
   }
 
-  // First verify that the user owns this form
-  const { data: form, error: checkError } = await supabase
+  const { data, error } = await supabase
     .from('forms')
     .select('owner_id')
     .eq('id', formId)
     .single();
 
-  if (checkError) {
-    console.error("Error checking form ownership:", checkError);
-    throw checkError;
+  if (error) {
+    console.error("Error checking form ownership:", error);
+    throw error;
   }
 
-  // If user doesn't own this form and isn't admin, throw error
-  if (form.owner_id !== user.id) {
-    // Check if user is admin
+  if (data.owner_id !== user.id) {
     const { data: isAdmin } = await supabase
       .from('user_roles')
       .select('*')
@@ -274,7 +244,6 @@ export const deleteForm = async (formId: string): Promise<void> => {
     }
   }
 
-  // First delete all form submissions
   const { error: submissionsError } = await supabase
     .from('form_submissions')
     .delete()
@@ -285,7 +254,6 @@ export const deleteForm = async (formId: string): Promise<void> => {
     throw submissionsError;
   }
 
-  // Then delete the form
   const { error } = await supabase
     .from('forms')
     .delete()

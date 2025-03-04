@@ -43,6 +43,9 @@ export interface FormBlockConfig {
   };
   helpText?: string;
   defaultValue?: string | number | boolean;
+  rowIndex?: number;
+  columnWidth?: string;
+  height?: string;
 }
 
 export interface FormBlock extends FormBlockConfig {

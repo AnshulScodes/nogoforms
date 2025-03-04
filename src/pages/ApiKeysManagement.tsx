@@ -26,15 +26,19 @@ export default function ApiKeysManagement() {
     const checkAdminStatus = async () => {
       if (!user) return;
       
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('role', 'admin')
-        .maybeSingle();
-        
-      if (data && !error) {
-        setIsAdmin(true);
+      try {
+        const { data, error } = await supabase
+          .from('user_roles')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('role', 'admin')
+          .maybeSingle();
+          
+        if (data && !error) {
+          setIsAdmin(true);
+        }
+      } catch (error) {
+        console.error("Error checking admin status:", error);
       }
     };
     

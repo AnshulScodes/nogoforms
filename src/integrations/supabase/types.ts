@@ -9,6 +9,36 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      api_keys: {
+        Row: {
+          created_at: string | null
+          id: string
+          key: string
+          last_used: string | null
+          name: string
+          revoked: boolean | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          key: string
+          last_used?: string | null
+          name: string
+          revoked?: boolean | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          key?: string
+          last_used?: string | null
+          name?: string
+          revoked?: boolean | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       consultation_requests: {
         Row: {
           contact: string
@@ -154,6 +184,27 @@ export type Database = {
           email?: string
           id?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: string
+          user_id?: string
         }
         Relationships: []
       }
