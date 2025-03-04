@@ -2,9 +2,10 @@
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { getFormById } from "@/services/forms";
-import type { Form } from "@/types/forms";
-import FormPreview from "@/components/form-builder/FormPreview";
+import { Form } from "@/types/forms";
 import { Toaster } from "@/components/ui/toaster";
+import FormPreview from "@/components/form-builder/FormPreview";
+import { convertFormDataToForm } from "@/sdk";
 
 export default function FormEmbed() {
   const { formId } = useParams<{ formId: string }>();
@@ -38,10 +39,11 @@ export default function FormEmbed() {
 
       try {
         const formData = await getFormById(formId);
-        setForm(formData);
-        
-        if (Object.values(userInfo).some(val => val !== undefined)) {
-          console.log("User info provided via URL:", userInfo);
+        // Convert FormData to Form type
+        if (formData && formData.id) {
+          setForm(convertFormDataToForm(formData));
+        } else {
+          throw new Error("Form data is incomplete");
         }
       } catch (err: any) {
         console.error("Failed to load form:", err);
@@ -55,28 +57,36 @@ export default function FormEmbed() {
   }, [formId, searchParams]);
 
   if (loading) {
-    return <div className="p-2 text-sm text-gray-600">Loading...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Toaster />
+        <div className="text-gray-600">Loading form...</div>
+      </div>
+    );
   }
 
   if (error || !form) {
     return (
-      <div className="p-2">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Toaster />
-        <div className="bg-white rounded p-2">
-          <p className="text-sm text-red-500">{error || "Form not found"}</p>
+        <div className="max-w-md p-6 bg-white rounded-lg shadow-md">
+          <h1 className="text-xl font-semibold text-red-500 mb-2">Error</h1>
+          <p className="text-gray-600">{error || "Form not found"}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="form-embed">
+    <div className="min-h-screen bg-gray-50 p-4">
       <Toaster />
-      <FormPreview 
-        blocks={form.form_schema} 
-        formId={form.id}
-        userInfo={userInfo}
-      />
+      <div className="container mx-auto max-w-3xl">
+        <FormPreview 
+          blocks={form.form_schema}
+          formId={form.id}
+          userInfo={userInfo}
+        />
+      </div>
     </div>
   );
 }

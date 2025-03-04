@@ -5,6 +5,7 @@ import { getFormById } from "@/services/forms";
 import type { Form } from "@/types/forms";
 import { Toaster } from "@/components/ui/toaster";
 import FormPreview from "@/components/form-builder/FormPreview";
+import { convertFormDataToForm } from "@/sdk";
 
 export default function PublicFormView() {
   const { formId } = useParams<{ formId: string }>();
@@ -38,10 +39,11 @@ export default function PublicFormView() {
 
       try {
         const formData = await getFormById(formId);
-        setForm(formData);
-        
-        if (Object.values(userInfo).some(val => val !== undefined)) {
-          console.log("User info provided via URL:", userInfo);
+        // Convert FormData to Form type
+        if (formData && formData.id) {
+          setForm(convertFormDataToForm(formData));
+        } else {
+          throw new Error("Form data is incomplete");
         }
       } catch (err: any) {
         console.error("Failed to load form:", err);

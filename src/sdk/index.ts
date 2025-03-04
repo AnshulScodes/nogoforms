@@ -44,6 +44,7 @@ export interface FormBlock {
   helpText?: string;
   defaultValue?: string | number | boolean;
   rowIndex?: number;
+  colIndex?: number; // Added colIndex property
   columnWidth?: string;
   height?: string;
 }
@@ -79,3 +80,44 @@ export const convertFormDataToForm = (formData: FormData): Form => {
     id: formData.id
   } as Form;
 };
+
+// Add FormBuilderSDK class
+import { createForm, updateForm } from '@/services/forms';
+import { supabase } from '@/integrations/supabase/client';
+
+export class FormBuilderSDK {
+  private form: Partial<Form>;
+  private blocks: FormBlock[] = [];
+
+  constructor(formConfig: { id?: string; title: string; description?: string }) {
+    this.form = {
+      id: formConfig.id,
+      title: formConfig.title,
+      description: formConfig.description || '',
+      form_schema: []
+    };
+  }
+
+  public addBlock(block: FormBlock): void {
+    this.blocks.push(block);
+  }
+
+  public async save(): Promise<Form> {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    const formData: FormData = {
+      ...this.form,
+      form_schema: this.blocks
+    } as FormData;
+
+    if (this.form.id) {
+      return await updateForm(this.form.id, formData, user.id);
+    } else {
+      return await createForm(formData, user.id);
+    }
+  }
+}

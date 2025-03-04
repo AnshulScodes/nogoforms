@@ -39,7 +39,8 @@ export type FormBlockJson = {
   options?: string[];
   imageSrc?: string;
   imagePosition?: "left" | "right";
-  imageSize?: "small" | "medium" | "large";
+  imageSize?: "small" | "medium" | "large" | "full"; // Added 'full' option
+  imageFullField?: boolean;
   validation?: {
     pattern?: string;
     min?: number;
@@ -50,4 +51,8 @@ export type FormBlockJson = {
   };
   helpText?: string;
   defaultValue?: string | number | boolean;
+  rowIndex?: number;
+  colIndex?: number; // Added colIndex property
+  columnWidth?: string;
+  height?: string;
 };
