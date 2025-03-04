@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -24,7 +23,10 @@ export function ApiKeyVerification() {
   }, []);
 
   const handleVerify = async (keyToVerify: string) => {
+    console.log('Starting verification process for key:', keyToVerify);
+    
     if (!keyToVerify.trim()) {
+      console.log('Empty API key provided');
       toast({
         variant: "destructive",
         title: "API Key Required",
@@ -34,12 +36,15 @@ export function ApiKeyVerification() {
     }
 
     setIsVerifying(true);
+    console.log('Setting verification state to true');
     
     try {
+      console.log('Calling verifyApiKey function');
       const isValid = await verifyApiKey(keyToVerify);
+      console.log('Verification result:', isValid);
       
       if (isValid) {
-        // Store API key in localStorage
+        console.log('API key is valid, storing in localStorage');
         localStorage.setItem("formbuilder_api_key", keyToVerify);
         setIsVerified(true);
         
@@ -48,11 +53,13 @@ export function ApiKeyVerification() {
           description: "Your API key has been verified successfully!",
         });
         
-        // Redirect to dashboard after a short delay
+        console.log('Starting navigation delay');
         setTimeout(() => {
+          console.log('Navigating to dashboard');
           navigate("/dashboard");
         }, 1500);
       } else {
+        console.log('API key is invalid');
         toast({
           variant: "destructive",
           title: "Invalid API Key",
@@ -60,13 +67,20 @@ export function ApiKeyVerification() {
         });
       }
     } catch (error) {
-      console.error("API key verification error:", error);
+      console.error("Detailed API key verification error:", {
+        error,
+        message: error.message,
+        stack: error.stack,
+        details: error.details || 'No additional details'
+      });
+      
       toast({
         variant: "destructive",
         title: "Verification Error",
         description: "An error occurred while verifying your API key. Please try again.",
       });
     } finally {
+      console.log('Setting verification state to false');
       setIsVerifying(false);
     }
   };

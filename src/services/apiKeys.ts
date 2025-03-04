@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface ApiKey {
@@ -22,6 +21,8 @@ export const getApiKeys = async (): Promise<ApiKey[]> => {
 };
 
 export const getApiKeyByKey = async (key: string): Promise<ApiKey | null> => {
+  console.log('Attempting to verify API key:', key);
+  
   const { data, error } = await supabase
     .from('api_keys')
     .select('*')
@@ -29,24 +30,41 @@ export const getApiKeyByKey = async (key: string): Promise<ApiKey | null> => {
     .eq('revoked', false)
     .maybeSingle();
   
-  if (error) throw error;
+  console.log('API key verification response:', { data, error });
+  
+  if (error) {
+    console.error('API key verification error:', error);
+    throw error;
+  }
   return data;
 };
 
 export const verifyApiKey = async (key: string): Promise<boolean> => {
-  const apiKey = await getApiKeyByKey(key);
-  
-  if (apiKey) {
-    // Update last used timestamp
-    await supabase
-      .from('api_keys')
-      .update({ last_used: new Date().toISOString() })
-      .eq('id', apiKey.id);
+  console.log('Starting API key verification for key:', key);
+  try {
+    const apiKey = await getApiKeyByKey(key);
+    console.log('API key lookup result:', apiKey);
+    
+    if (apiKey) {
+      console.log('Valid API key found, updating last_used timestamp');
+      const { error: updateError } = await supabase
+        .from('api_keys')
+        .update({ last_used: new Date().toISOString() })
+        .eq('id', apiKey.id);
       
-    return true;
+      if (updateError) {
+        console.error('Error updating last_used timestamp:', updateError);
+      }
+      
+      return true;
+    }
+    
+    console.log('No valid API key found');
+    return false;
+  } catch (error) {
+    console.error('Error in verifyApiKey:', error);
+    return false;
   }
-  
-  return false;
 };
 
 export const revokeApiKey = async (id: string): Promise<void> => {

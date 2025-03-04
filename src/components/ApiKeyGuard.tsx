@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { verifyApiKey } from "@/services/apiKeys";
@@ -10,28 +9,40 @@ export function ApiKeyGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const checkApiKey = async () => {
+      console.log('ApiKeyGuard: Starting API key check');
       const apiKey = localStorage.getItem("formbuilder_api_key");
+      console.log('ApiKeyGuard: Retrieved API key from localStorage:', apiKey ? 'Key exists' : 'No key found');
       
       if (!apiKey) {
+        console.log('ApiKeyGuard: No API key found, redirecting to verification');
         navigate("/verify-api-key");
         return;
       }
       
       try {
+        console.log('ApiKeyGuard: Verifying API key');
         const isValid = await verifyApiKey(apiKey);
+        console.log('ApiKeyGuard: Verification result:', isValid);
         
         if (!isValid) {
-          // Remove invalid key from storage
+          console.log('ApiKeyGuard: Invalid key, removing from storage and redirecting');
           localStorage.removeItem("formbuilder_api_key");
           navigate("/verify-api-key");
           return;
         }
         
+        console.log('ApiKeyGuard: API key verified successfully');
         setVerified(true);
       } catch (error) {
-        console.error("API key verification error:", error);
+        console.error("ApiKeyGuard: Detailed verification error:", {
+          error,
+          message: error.message,
+          stack: error.stack,
+          details: error.details || 'No additional details'
+        });
         navigate("/verify-api-key");
       } finally {
+        console.log('ApiKeyGuard: Setting loading to false');
         setLoading(false);
       }
     };
