@@ -1,6 +1,8 @@
 
 import type { FormData } from '@/services/forms';
 
+export type FormStatus = "draft" | "published" | "archived";
+
 export type FormBlockType = 
   "text" | 
   "email" | 
@@ -55,7 +57,7 @@ export interface Form {
   description: string | null;
   form_schema: FormBlock[];
   settings: Record<string, any> | null;
-  status: string | null;
+  status: FormStatus | null;
   created_at: string | null;
   updated_at: string | null;
 }
@@ -71,7 +73,7 @@ export const convertFormDataToForm = (formData: FormData): Form => {
     description: formData.description || null,
     form_schema: formData.form_schema || [],
     settings: formData.settings || null,
-    status: formData.status || null,
+    status: formData.status as FormStatus || null,
     created_at: formData.created_at || null,
     updated_at: formData.updated_at || null
   };
@@ -112,7 +114,7 @@ export class FormBuilderSDK {
       description: this.form.description || null,
       form_schema: this.blocks,
       settings: this.form.settings || null,
-      status: this.form.status || 'draft'
+      status: (this.form.status as FormStatus) || 'draft'
     };
 
     if (this.form.id) {

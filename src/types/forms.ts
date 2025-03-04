@@ -1,6 +1,6 @@
 
 import type { Json } from "@/types/database";
-import type { FormBlock } from "@/sdk/FormBlockSDK";
+import type { FormBlock, FormStatus } from "@/sdk/index";
 
 export interface Form {
   id: string;
@@ -8,7 +8,7 @@ export interface Form {
   description: string | null;
   form_schema: FormBlock[];
   settings: Json | null;
-  status: string | null;
+  status: FormStatus | null;
   created_at: string | null;
   updated_at: string | null;
 }
