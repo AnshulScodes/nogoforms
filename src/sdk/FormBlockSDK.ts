@@ -1,3 +1,4 @@
+
 import type { Json } from "@/types/database";
 import type { FormBlockJson } from "@/types/forms";
 
@@ -19,7 +20,8 @@ export type FormBlockType =
   "color" | 
   "time" | 
   "heading" | 
-  "paragraph";
+  "paragraph" | 
+  "image";
 
 export interface FormBlockConfig {
   type: FormBlockType;

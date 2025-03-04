@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthGuard } from "@/components/AuthGuard";
+import { ApiKeyGuard } from "@/components/ApiKeyGuard";
 import { Navigation } from "@/components/Navigation";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -12,6 +13,8 @@ import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/Dashboard";
 import FormBuilder from "./components/form-builder/FormBuilder";
 import PublicFormView from "./pages/PublicFormView";
+import ApiKeysManagement from "./pages/ApiKeysManagement";
+import { ApiKeyVerification } from "@/components/ApiKeyVerification";
 
 // Add CSS to hide navigation in embedded views
 import "./embed.css";
@@ -28,11 +31,18 @@ const App = () => (
         <Routes>
           <Route path="/auth" element={<Auth />} />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/verify-api-key" element={
+            <AuthGuard>
+              <ApiKeyVerification />
+            </AuthGuard>
+          } />
           <Route
             path="/dashboard"
             element={
               <AuthGuard>
-                <Dashboard />
+                <ApiKeyGuard>
+                  <Dashboard />
+                </ApiKeyGuard>
               </AuthGuard>
             }
           />
@@ -40,7 +50,9 @@ const App = () => (
             path="/builder"
             element={
               <AuthGuard>
-                <FormBuilder />
+                <ApiKeyGuard>
+                  <FormBuilder />
+                </ApiKeyGuard>
               </AuthGuard>
             }
           />
@@ -48,7 +60,19 @@ const App = () => (
             path="/builder/:formId"
             element={
               <AuthGuard>
-                <FormBuilder />
+                <ApiKeyGuard>
+                  <FormBuilder />
+                </ApiKeyGuard>
+              </AuthGuard>
+            }
+          />
+          <Route
+            path="/api-keys"
+            element={
+              <AuthGuard>
+                <ApiKeyGuard>
+                  <ApiKeysManagement />
+                </ApiKeyGuard>
               </AuthGuard>
             }
           />

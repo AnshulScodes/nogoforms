@@ -1,127 +1,136 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Plus, PenSquare, Copy, Trash2, ExternalLink, FileText } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import type { Form, FormBlockJson, FormSubmission } from "@/types/forms";
-import type { FormBlock } from "@/sdk/FormBlockSDK";
-import { getFormResponses, getForms, deleteForm } from "@/services/forms";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 
-const Dashboard = () => {
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Plus } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { format } from "date-fns";
+
+interface Form {
+  id: string;
+  title: string;
+  description: string;
+  created_at: string;
+  updated_at: string;
+  status: string;
+  submission_count: number;
+}
+
+export default function Dashboard() {
   const [forms, setForms] = useState<Form[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedFormResponses, setSelectedFormResponses] = useState<FormSubmission[]>([]);
-  const navigate = useNavigate();
-  const { toast } = useToast();
+  const { user } = useAuth();
 
-  useEffect(() => {
-    fetchForms();
-  }, []);
-
-  const fetchForms = async () => {
+  const loadForms = async () => {
+    if (!user) return;
+    
+    setLoading(true);
+    
     try {
-      const formData = await getForms();
-      setForms(formData);
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to load forms",
-      });
+      // Get forms created by the current user
+      const { data: formsData, error: formsError } = await supabase
+        .from('forms')
+        .select('*')
+        .eq('owner_id', user.id)
+        .order('updated_at', { ascending: false });
+      
+      if (formsError) throw formsError;
+      
+      // Get submission counts for each form
+      const formsWithCounts = await Promise.all(
+        (formsData || []).map(async (form) => {
+          const { count, error: countError } = await supabase
+            .from('form_submissions')
+            .select('*', { count: 'exact', head: true })
+            .eq('form_id', form.id);
+          
+          if (countError) throw countError;
+          
+          return {
+            ...form,
+            submission_count: count || 0
+          };
+        })
+      );
+      
+      setForms(formsWithCounts);
+    } catch (error) {
+      console.error("Error loading forms:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const viewFormResponses = async (formId: string) => {
-    try {
-      const responses = await getFormResponses(formId);
-      setSelectedFormResponses(responses);
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to load form responses",
-      });
-    }
-  };
+  useEffect(() => {
+    loadForms();
+    
+    // Set up realtime subscription to update forms automatically
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'forms',
+          filter: `owner_id=eq.${user?.id}`
+        },
+        () => {
+          loadForms();
+        }
+      )
+      .subscribe();
 
-  const handleDeleteForm = async (formId: string) => {
-    try {
-      console.log(`🗑️ Processing form deletion (ID: ${formId})...`);
-      await deleteForm(formId);
-      // Update local state after successful deletion
-      setForms(forms.filter(form => form.id !== formId));
-      toast({
-        title: "Success",
-        description: "Form deleted successfully",
-      });
-      console.log(`✅ Form removed from dashboard`);
-    } catch (error: any) {
-      console.error(`❌ Delete operation failed: ${error.message}`);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to delete form",
-      });
-    }
-  };
-
-  const copyFormLink = (formId: string) => {
-    const formLink = `${window.location.origin}/form/${formId}`;
-    navigator.clipboard.writeText(formLink);
-    toast({
-      title: "Copied!",
-      description: "Form link copied to clipboard",
-    });
-  };
-
-  const handleEditForm = (formId: string) => {
-    navigate(`/builder/${formId}`);
-  };
-
-  if (loading) {
-    return <div className="p-8">Loading...</div>;
-  }
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
 
   return (
-    <div className="container mx-auto p-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">My Forms</h1>
-        <Button onClick={() => navigate("/builder")} size="sm">
-          <Plus className="h-4 w-4 mr-2" />
-          Create New Form
+    <div className="container mx-auto py-10">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Your Forms</h1>
+        <Button asChild>
+          <Link to="/builder">
+            <Plus className="h-4 w-4 mr-2" />
+            Create New Form
+          </Link>
         </Button>
       </div>
 
-      {forms.length === 0 ? (
-        <Card className="text-center p-12">
-          <CardContent>
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium">No forms yet</h3>
-              <p className="text-muted-foreground">Create your first form to get started</p>
-              <Button onClick={() => navigate("/builder")}>
-                <Plus className="h-4 w-4 mr-2" />
-                Create Form
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="opacity-60">
+              <CardHeader>
+                <div className="h-6 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></div>
+              </CardHeader>
+              <CardContent>
+                <div className="h-4 bg-gray-200 rounded w-full mb-2 animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+              </CardContent>
+              <CardFooter>
+                <div className="h-9 bg-gray-200 rounded w-full animate-pulse"></div>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      ) : forms.length === 0 ? (
+        <Card className="border-dashed border-2">
+          <CardContent className="pt-6">
+            <div className="text-center py-12">
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No forms yet</h3>
+              <p className="text-gray-500 mb-6">
+                Create your first form to start collecting submissions.
+              </p>
+              <Button asChild>
+                <Link to="/builder">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create New Form
+                </Link>
               </Button>
             </div>
           </CardContent>
@@ -129,106 +138,36 @@ const Dashboard = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {forms.map((form) => (
-            <Card key={form.id} className="flex flex-col">
+            <Card key={form.id}>
               <CardHeader>
-                <CardTitle>{form.title}</CardTitle>
-                <CardDescription>
+                <CardTitle className="truncate">{form.title}</CardTitle>
+                <CardDescription className="truncate">
                   {form.description || "No description"}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="text-sm text-muted-foreground">
-                  <p>Created: {new Date(form.created_at!).toLocaleDateString()}</p>
-                  <p>Fields: {form.form_schema.length}</p>
-                  <p className="capitalize">Status: {form.status}</p>
+                  <div className="flex justify-between mb-1">
+                    <span>Created:</span>
+                    <span>{format(new Date(form.created_at), 'MMM d, yyyy')}</span>
+                  </div>
+                  <div className="flex justify-between mb-1">
+                    <span>Last updated:</span>
+                    <span>{format(new Date(form.updated_at), 'MMM d, yyyy')}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Submissions:</span>
+                    <span>{form.submission_count}</span>
+                  </div>
                 </div>
               </CardContent>
-              <CardFooter className="mt-auto flex justify-end gap-2">
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => viewFormResponses(form.id)}
-                    >
-                      <FileText className="h-4 w-4" />
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-                    <DialogHeader>
-                      <DialogTitle>Form Responses - {form.title}</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      {selectedFormResponses.length === 0 ? (
-                        <p className="text-center text-muted-foreground py-4">
-                          No responses yet
-                        </p>
-                      ) : (
-                        selectedFormResponses.map((response, index) => (
-                          <Card key={response.id} className="p-4">
-                            <div className="flex justify-between items-start mb-2">
-                              <h4 className="font-medium">Response #{index + 1}</h4>
-                              <span className="text-sm text-muted-foreground">
-                                {new Date(response.created_at!).toLocaleString()}
-                              </span>
-                            </div>
-                            <div className="space-y-2">
-                              {Object.entries(response.data as Record<string, any>).map(([key, value]) => (
-                                <div key={key} className="grid grid-cols-2 gap-2">
-                                  <span className="font-medium">{key}:</span>
-                                  <span>{String(value)}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </Card>
-                        ))
-                      )}
-                    </div>
-                  </DialogContent>
-                </Dialog>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => copyFormLink(form.id)}
-                >
-                  <Copy className="h-4 w-4" />
+              <CardFooter className="flex justify-between gap-2">
+                <Button variant="outline" asChild className="flex-1">
+                  <Link to={`/form/${form.id}`}>View Form</Link>
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => window.open(`/form/${form.id}`, '_blank')}
-                >
-                  <ExternalLink className="h-4 w-4" />
+                <Button asChild className="flex-1">
+                  <Link to={`/builder/${form.id}`}>Edit</Link>
                 </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => handleEditForm(form.id)}
-                >
-                  <PenSquare className="h-4 w-4" />
-                </Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This action cannot be undone. This will permanently delete the form
-                        and all its responses.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => handleDeleteForm(form.id)}>
-                        Delete
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
               </CardFooter>
             </Card>
           ))}
@@ -236,6 +175,4 @@ const Dashboard = () => {
       )}
     </div>
   );
-};
-
-export default Dashboard;
+}
