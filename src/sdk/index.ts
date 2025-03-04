@@ -1,3 +1,4 @@
+
 import type { FormData } from '@/services/forms';
 
 export type FormBlockType = 
@@ -79,6 +80,7 @@ export const convertFormDataToForm = (formData: FormData): Form => {
 import { createForm, updateForm } from '@/services/forms';
 import { supabase } from '@/integrations/supabase/client';
 
+// Export FormBuilderSDK only once at the end
 export class FormBuilderSDK {
   private form: Partial<Form>;
   private blocks: FormBlock[] = [];
@@ -87,7 +89,7 @@ export class FormBuilderSDK {
     this.form = {
       id: formConfig.id,
       title: formConfig.title,
-      description: formConfig.description || '',
+      description: formConfig.description || null,
       form_schema: []
     };
   }
@@ -103,17 +105,24 @@ export class FormBuilderSDK {
       throw new Error('User not authenticated');
     }
 
+    // Create a properly-typed FormData object for the service
     const formData: FormData = {
-      ...this.form,
-      form_schema: this.blocks
-    } as FormData;
+      id: this.form.id,
+      title: this.form.title || '',
+      description: this.form.description || null,
+      form_schema: this.blocks,
+      settings: this.form.settings || null,
+      status: this.form.status || 'draft'
+    };
 
     if (this.form.id) {
-      return await updateForm(this.form.id, formData, user.id);
+      // Convert the result to a properly-typed Form
+      const updatedForm = await updateForm(this.form.id, formData, user.id);
+      return convertFormDataToForm(updatedForm);
     } else {
-      return await createForm(formData, user.id);
+      // Convert the result to a properly-typed Form
+      const newForm = await createForm(formData, user.id);
+      return convertFormDataToForm(newForm);
     }
   }
 }
-
-export { FormBuilderSDK };
