@@ -13,14 +13,14 @@ const Index = () => {
         <section className="text-center py-16 md:py-24 animate-fade-down">
           <div className="max-w-3xl mx-auto">
             <span className="inline-block px-4 py-1 mb-6 text-sm font-medium bg-gray-100 rounded-full animate-slide-up-fade">
-              Introducing Smart Form Builder
+              Introducing NogoForms
             </span>
             <h1 className="text-4xl md:text-6xl font-bold mb-6 tracking-tight text-balance">
               Create Beautiful Forms
               <br /> in Minutes
             </h1>
             <p className="text-lg md:text-xl text-gray-600 mb-8 max-w-2xl mx-auto text-balance">
-              Build high-converting forms with our intuitive drag-and-drop builder.
+              Build high-converting forms with NogoForms' intuitive drag-and-drop builder.
               No coding required.
             </p>
             <div className="flex items-center justify-center gap-4">

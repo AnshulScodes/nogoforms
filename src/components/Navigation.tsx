@@ -1,4 +1,3 @@
-
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -51,7 +50,7 @@ export function Navigation() {
     <header className="bg-white border-b">
       <div className="container mx-auto px-4 flex h-16 items-center justify-between">
         <Link to="/" className="font-bold text-lg">
-          Form Builder
+          NogoForms
         </Link>
         
         <nav className="flex items-center gap-6">
