@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { verifyApiKey } from "@/services/apiKeys";
@@ -34,12 +35,7 @@ export function ApiKeyGuard({ children }: { children: React.ReactNode }) {
         console.log('ApiKeyGuard: API key verified successfully');
         setVerified(true);
       } catch (error) {
-        console.error("ApiKeyGuard: Detailed verification error:", {
-          error,
-          message: error.message,
-          stack: error.stack,
-          details: error.details || 'No additional details'
-        });
+        console.error("ApiKeyGuard: Error during verification:", error);
         navigate("/verify-api-key");
       } finally {
         console.log('ApiKeyGuard: Setting loading to false');
