@@ -1,6 +1,5 @@
-
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus } from "lucide-react";
@@ -22,6 +21,7 @@ export default function Dashboard() {
   const [forms, setForms] = useState<Form[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const loadForms = async () => {
     if (!user) return;
@@ -94,8 +94,8 @@ export default function Dashboard() {
         <h1 className="text-2xl font-bold">Your Forms</h1>
         <Button asChild>
           <Link to="/builder">
-          <Plus className="h-4 w-4 mr-2" />
-          Create New Form
+            <Plus className="h-4 w-4 mr-2" />
+            Create New Form
           </Link>
         </Button>
       </div>
@@ -108,7 +108,7 @@ export default function Dashboard() {
                 <div className="h-6 bg-gray-200 rounded w-3/4 animate-pulse"></div>
                 <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></div>
               </CardHeader>
-          <CardContent>
+              <CardContent>
                 <div className="h-4 bg-gray-200 rounded w-full mb-2 animate-pulse"></div>
                 <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
               </CardContent>
@@ -128,7 +128,7 @@ export default function Dashboard() {
               </p>
               <Button asChild>
                 <Link to="/builder">
-                <Plus className="h-4 w-4 mr-2" />
+                  <Plus className="h-4 w-4 mr-2" />
                   Create New Form
                 </Link>
               </Button>
@@ -167,6 +167,13 @@ export default function Dashboard() {
                 </Button>
                 <Button asChild className="flex-1">
                   <Link to={`/builder/${form.id}`}>Edit</Link>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate(`/forms/${form.id}/responses`)}
+                >
+                  View Responses
                 </Button>
               </CardFooter>
             </Card>
