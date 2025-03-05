@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -82,7 +81,11 @@ export function ApiKeyVerification() {
           <CardTitle>API Key Verification</CardTitle>
           <CardDescription>
             Enter your API key to access the form builder platform.
-            (Hint: try using "6969123123")
+            {import.meta.env.DEV && (
+              <div className="mt-2 text-sm text-muted-foreground">
+                (Development mode: try using "dev-key-123")
+              </div>
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent>
