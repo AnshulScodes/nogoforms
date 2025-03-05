@@ -1,4 +1,8 @@
+
 import { supabase } from "@/integrations/supabase/client";
+
+// Hardcoded API key - simple solution
+const VALID_API_KEYS = ["6969123123"];
 
 export interface ApiKey {
   id: string;
@@ -21,50 +25,25 @@ export const getApiKeys = async (): Promise<ApiKey[]> => {
 };
 
 export const getApiKeyByKey = async (key: string): Promise<ApiKey | null> => {
-  console.log('Attempting to verify API key:', key);
-  
-  const { data, error } = await supabase
-    .from('api_keys')
-    .select('*')
-    .eq('key', key)
-    .eq('revoked', false)
-    .maybeSingle();
-  
-  console.log('API key verification response:', { data, error });
-  
-  if (error) {
-    console.error('API key verification error:', error);
-    throw error;
+  // Simple check against hardcoded keys
+  if (VALID_API_KEYS.includes(key)) {
+    return {
+      id: "static-id",
+      key: key,
+      user_id: "static-user",
+      name: "Default API Key",
+      created_at: new Date().toISOString(),
+      revoked: false,
+      last_used: new Date().toISOString()
+    };
   }
-  return data;
+  return null;
 };
 
 export const verifyApiKey = async (key: string): Promise<boolean> => {
-  console.log('Starting API key verification for key:', key);
-  try {
-    const apiKey = await getApiKeyByKey(key);
-    console.log('API key lookup result:', apiKey);
-    
-    if (apiKey) {
-      console.log('Valid API key found, updating last_used timestamp');
-      const { error: updateError } = await supabase
-        .from('api_keys')
-        .update({ last_used: new Date().toISOString() })
-        .eq('id', apiKey.id);
-      
-      if (updateError) {
-        console.error('Error updating last_used timestamp:', updateError);
-      }
-      
-      return true;
-    }
-    
-    console.log('No valid API key found');
-    return false;
-  } catch (error) {
-    console.error('Error in verifyApiKey:', error);
-    return false;
-  }
+  console.log('Verifying API key:', key);
+  // Simple check against hardcoded keys
+  return VALID_API_KEYS.includes(key);
 };
 
 export const revokeApiKey = async (id: string): Promise<void> => {

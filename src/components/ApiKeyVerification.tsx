@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -36,12 +37,9 @@ export function ApiKeyVerification() {
     }
 
     setIsVerifying(true);
-    console.log('Setting verification state to true');
     
     try {
-      console.log('Calling verifyApiKey function');
       const isValid = await verifyApiKey(keyToVerify);
-      console.log('Verification result:', isValid);
       
       if (isValid) {
         console.log('API key is valid, storing in localStorage');
@@ -53,9 +51,7 @@ export function ApiKeyVerification() {
           description: "Your API key has been verified successfully!",
         });
         
-        console.log('Starting navigation delay');
         setTimeout(() => {
-          console.log('Navigating to dashboard');
           navigate("/dashboard");
         }, 1500);
       } else {
@@ -63,16 +59,11 @@ export function ApiKeyVerification() {
         toast({
           variant: "destructive",
           title: "Invalid API Key",
-          description: "The API key you entered is invalid or has been revoked. Please contact the administrator.",
+          description: "The API key you entered is invalid. Please try again with the correct key.",
         });
       }
     } catch (error) {
-      console.error("Detailed API key verification error:", {
-        error,
-        message: error.message,
-        stack: error.stack,
-        details: error.details || 'No additional details'
-      });
+      console.error("API key verification error:", error);
       
       toast({
         variant: "destructive",
@@ -80,7 +71,6 @@ export function ApiKeyVerification() {
         description: "An error occurred while verifying your API key. Please try again.",
       });
     } finally {
-      console.log('Setting verification state to false');
       setIsVerifying(false);
     }
   };
@@ -92,7 +82,7 @@ export function ApiKeyVerification() {
           <CardTitle>API Key Verification</CardTitle>
           <CardDescription>
             Enter your API key to access the form builder platform.
-            If you don't have an API key, please contact the administrator.
+            (Hint: try using "6969123123")
           </CardDescription>
         </CardHeader>
         <CardContent>
