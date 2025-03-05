@@ -1,6 +1,5 @@
-
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus } from "lucide-react";
@@ -22,6 +21,7 @@ export default function Dashboard() {
   const [forms, setForms] = useState<Form[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const loadForms = async () => {
     if (!user) return;
@@ -167,6 +167,13 @@ export default function Dashboard() {
                 </Button>
                 <Button asChild className="flex-1">
                   <Link to={`/builder/${form.id}`}>Edit</Link>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate(`/forms/${form.id}/responses`)}
+                >
+                  View Responses
                 </Button>
               </CardFooter>
             </Card>
