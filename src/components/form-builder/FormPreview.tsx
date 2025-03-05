@@ -16,6 +16,7 @@ import { submitFormResponse } from '@/services/forms';
 import type { FormBlock } from '@/sdk';
 import { cn } from '@/lib/utils';
 import { Textarea } from '@/components/ui/textarea';
+import { Watermark } from "@/components/Watermark";
 
 interface FormPreviewProps {
   blocks: FormBlock[];
@@ -27,6 +28,7 @@ interface FormPreviewProps {
     userCompany?: string;
     [key: string]: any; // Allow any additional user metadata
   };
+  className?: string;
 }
 
 // Helper function to convert column width to CSS class
@@ -51,7 +53,7 @@ const getHeightClass = (height: string) => {
   }
 };
 
-const FormPreview: React.FC<FormPreviewProps> = ({ blocks, formId, userInfo = {} }) => {
+const FormPreview: React.FC<FormPreviewProps> = ({ blocks, formId, userInfo = {}, className }) => {
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -193,7 +195,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({ blocks, formId, userInfo = {}
   const hasGridLayout = blocks.some(block => block.rowIndex !== undefined && block.columnWidth !== undefined);
 
   return (
-    <div className={containerClass}>
+    <div className={cn("relative min-h-[400px] w-full rounded-md border bg-background p-4", className)}>
       {submitted ? (
         <div className="text-center py-4">
           <h2 className="text-xl font-semibold text-green-600 mb-2">Thank You!</h2>
@@ -250,6 +252,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({ blocks, formId, userInfo = {}
           </Button>
         </form>
       )}
+      <Watermark />
     </div>
   );
 };
