@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -169,6 +168,18 @@ export default function Dashboard() {
                   <Link to={`/builder/${form.id}`}>Edit</Link>
                 </Button>
               </CardFooter>
+              <div className="px-6 pb-4 pt-0">
+                <Button 
+                  variant="secondary" 
+                  asChild 
+                  className="w-full"
+                  disabled={form.submission_count === 0}
+                >
+                  <Link to={`/forms/${form.id}/responses`}>
+                    View Responses {form.submission_count > 0 && `(${form.submission_count})`}
+                  </Link>
+                </Button>
+              </div>
             </Card>
           ))}
         </div>

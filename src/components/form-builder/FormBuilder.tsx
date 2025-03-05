@@ -316,7 +316,10 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
   const copyEmbedCode = () => {
     if (!formId) return;
     
-    const embedCode = `<iframe src="${window.location.origin}/form/${formId}?userId=USER_ID&userName=USER_NAME&userEmail=USER_EMAIL" width="100%" height="600" frameborder="0"></iframe>`;
+    // Use environment variable if available, fall back to window.location.origin
+    const baseUrl = import.meta.env.VITE_PUBLIC_URL || window.location.origin;
+    
+    const embedCode = `<iframe src="${baseUrl}/form/${formId}?userId=USER_ID&userName=USER_NAME&userEmail=USER_EMAIL" width="100%" height="600" frameborder="0"></iframe>`;
     navigator.clipboard.writeText(embedCode);
     
     toast({
@@ -328,7 +331,10 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
   const copyFormLink = () => {
     if (!formId) return;
     
-    const formLink = `${window.location.origin}/form/${formId}`;
+    // Use environment variable if available, fall back to window.location.origin
+    const baseUrl = import.meta.env.VITE_PUBLIC_URL || window.location.origin;
+    
+    const formLink = `${baseUrl}/form/${formId}`;
     navigator.clipboard.writeText(formLink);
     
     toast({
