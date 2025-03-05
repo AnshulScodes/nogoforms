@@ -10,23 +10,12 @@ export function ApiKeyVerification() {
   const [apiKey, setApiKey] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
-  const [userInfo, setUserInfo] = useState<{
-    id?: string;
-    name?: string;
-    email?: string;
-  }>({});
   const navigate = useNavigate();
   const { toast } = useToast();
 
   // Check if API key is already in localStorage
   useEffect(() => {
     const storedApiKey = localStorage.getItem("formbuilder_api_key");
-    const storedUserInfo = localStorage.getItem("formbuilder_user_info");
-    
-    if (storedUserInfo) {
-      setUserInfo(JSON.parse(storedUserInfo));
-    }
-    
     if (storedApiKey) {
       setApiKey(storedApiKey);
       handleVerify(storedApiKey);
@@ -61,10 +50,10 @@ export function ApiKeyVerification() {
           description: "Your API key has been verified successfully!",
         });
         
-        // Instead of navigating, we'll show the onboarding form
+        // Navigate to dashboard after verification
         setTimeout(() => {
-          setIsVerified(true);
-        }, 500);
+          navigate("/dashboard");
+        }, 1500);
       } else {
         console.log('API key is invalid');
         toast({
@@ -85,27 +74,6 @@ export function ApiKeyVerification() {
       setIsVerifying(false);
     }
   };
-
-  if (isVerified) {
-    const formUrl = new URL("https://nogoforms-l6d1vj1wa-anshulscodes-projects.vercel.app/form/96ce8e8d-5942-4897-9002-18f9c5ac22ba");
-    
-    // Add user parameters if available
-    if (userInfo.id) formUrl.searchParams.set("userId", userInfo.id);
-    if (userInfo.name) formUrl.searchParams.set("userName", userInfo.name);
-    if (userInfo.email) formUrl.searchParams.set("userEmail", userInfo.email);
-
-    return (
-      <div className="w-full h-[600px]">
-        <iframe 
-          src={formUrl.toString()}
-          width="100%" 
-          height="600" 
-          frameBorder="0"
-          title="Onboarding Form"
-        />
-      </div>
-    );
-  }
 
   return (
     <div className="flex items-center justify-center min-h-[80vh]">
