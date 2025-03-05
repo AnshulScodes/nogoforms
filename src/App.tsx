@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,7 +15,6 @@ import FormBuilder from "./components/form-builder/FormBuilder";
 import PublicFormView from "./pages/PublicFormView";
 import ApiKeysManagement from "./pages/ApiKeysManagement";
 import { ApiKeyVerification } from "@/components/ApiKeyVerification";
-import FormResponses from "@/pages/FormResponses";
 
 // Add CSS to hide navigation in embedded views
 import "./embed.css";
@@ -82,7 +82,6 @@ const App = () => (
               <PublicFormView />
             }
           />
-          <Route path="/forms/:formId/responses" element={<FormResponses />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
