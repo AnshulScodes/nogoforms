@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Copy, Link, Trash2, Settings, Image, LayoutGrid, Maximize2, ChevronDown } from "lucide-react";
+import { Plus, Copy, Link, Trash2, Settings, Image, LayoutGrid, Maximize2, ChevronDown, GripVertical } from "lucide-react";
 import { FormBuilderSDK, type FormBlock } from "@/sdk";
 import { useToast } from "@/hooks/use-toast";
 import FormPreview from "./FormPreview";
@@ -93,7 +93,7 @@ const getColumnWidthClass = (width: string) => {
 const FormBuilder = ({ preview = false }: FormBuilderProps) => {
   const [elements, setElements] = useState<FormBlock[]>([]);
   const [loading, setLoading] = useState(false);
-  const [formTitle, setFormTitle] = useState("New Form");
+  const [formTitle, setFormTitle] = useState("");
   const [formDescription, setFormDescription] = useState("");
   const [useGridLayout, setUseGridLayout] = useState(false);
   const [currentRow, setCurrentRow] = useState<number | null>(null);
@@ -143,16 +143,48 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
   const addElement = (type: FormBlock["type"]) => {
     console.log(`➕ Adding new ${type} field...`);
     
-    let label = `New ${type} field`;
-    let placeholder = `Enter ${type}...`;
+    // Set default label and placeholder based on field type
+    let label = `${type.charAt(0).toUpperCase() + type.slice(1)} field label`;
+    let placeholder = `Placeholder: Enter ${type} here`;
     
     // Customize label and placeholder based on field type
-    if (type === "heading") {
-      label = "Section Heading";
-      placeholder = "";
-    } else if (type === "paragraph") {
-      label = "This is a paragraph text to provide additional information to your form users.";
-      placeholder = "";
+    switch (type) {
+      case "heading":
+        label = "Section Heading";
+        placeholder = "";
+        break;
+      case "paragraph":
+        label = "This is a paragraph text to provide additional information to your form users.";
+        placeholder = "";
+        break;
+      case "text":
+        label = "Text field label";
+        placeholder = "Placeholder: Enter text";
+        break;
+      case "email":
+        label = "Email field label";
+        placeholder = "Placeholder: Enter email";
+        break;
+      case "number":
+        label = "Number field label";
+        placeholder = "Placeholder: Enter number";
+        break;
+      case "textarea":
+        label = "Text area label";
+        placeholder = "Placeholder: Enter longer text here";
+        break;
+      case "select":
+        label = "Dropdown label";
+        placeholder = "Select an option";
+        break;
+      case "checkbox":
+        label = "Checkbox label";
+        placeholder = "";
+        break;
+      case "radio":
+        label = "Radio button group label";
+        placeholder = "";
+        break;
     }
     
     const newElement: FormBlock = {
@@ -175,16 +207,48 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
   const addGridElement = (type: FormBlock["type"], rowIndex: number, colIndex: number) => {
     console.log(`➕ Adding new ${type} field to grid at row ${rowIndex}, column ${colIndex}...`);
     
-    let label = `New ${type} field`;
-    let placeholder = `Enter ${type}...`;
+    // Set default label and placeholder based on field type
+    let label = `${type.charAt(0).toUpperCase() + type.slice(1)} field label`;
+    let placeholder = `Placeholder: Enter ${type} here`;
     
     // Customize label and placeholder based on field type
-    if (type === "heading") {
-      label = "Section Heading";
-      placeholder = "";
-    } else if (type === "paragraph") {
-      label = "This is a paragraph text to provide additional information to your form users.";
-      placeholder = "";
+    switch (type) {
+      case "heading":
+        label = "Section Heading";
+        placeholder = "";
+        break;
+      case "paragraph":
+        label = "This is a paragraph text to provide additional information to your form users.";
+        placeholder = "";
+        break;
+      case "text":
+        label = "Text field label";
+        placeholder = "Placeholder: Enter text";
+        break;
+      case "email":
+        label = "Email field label";
+        placeholder = "Placeholder: Enter email";
+        break;
+      case "number":
+        label = "Number field label";
+        placeholder = "Placeholder: Enter number";
+        break;
+      case "textarea":
+        label = "Text area label";
+        placeholder = "Placeholder: Enter longer text here";
+        break;
+      case "select":
+        label = "Dropdown label";
+        placeholder = "Select an option";
+        break;
+      case "checkbox":
+        label = "Checkbox label";
+        placeholder = "";
+        break;
+      case "radio":
+        label = "Radio button group label";
+        placeholder = "";
+        break;
     }
     
     const newElement: FormBlock = {
@@ -266,18 +330,14 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
   };
 
   const saveForm = async () => {
-    if (!formTitle.trim()) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Form title is required",
-      });
-      return;
-    }
+    // Use a default title if the user hasn't provided one
+    const titleToUse = formTitle.trim() 
+      ? formTitle.trim() 
+      : `My Form ${new Date().toLocaleDateString()}`;
 
     try {
       const builder = new FormBuilderSDK({
-        title: formTitle,
+        title: titleToUse,
         description: formDescription,
         id: formId,
       });
@@ -287,6 +347,11 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
       });
 
       const form = await builder.save();
+      
+      // Update the form title if we used the default
+      if (!formTitle.trim()) {
+        setFormTitle(titleToUse);
+      }
       
       toast({
         title: "Success",
@@ -370,6 +435,12 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
     return [...new Set(rowIndexes)].sort((a, b) => a - b);
   };
 
+  // Add a new function to handle reordering elements in grid layout
+  const reorderGridElements = (updatedElements: FormBlock[]) => {
+    console.log(`🔄 Reordering grid elements...`);
+    setElements(updatedElements);
+  };
+
   if (loading) {
     return <div className="p-8">Loading...</div>;
   }
@@ -393,45 +464,30 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
                 placeholder="Enter form description (optional)..."
               />
             </div>
-            <div className="flex gap-2">
-              <>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setUseGridLayout(!useGridLayout)}
-                >
-                  <LayoutGrid className="h-4 w-4 mr-2" />
-                  {useGridLayout ? "Standard Layout" : "Grid Layout"}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setUseGridLayout(!useGridLayout)}
+              >
+                <LayoutGrid className="h-4 w-4 mr-2" />
+                {useGridLayout ? "Switch to Standard Layout" : "Switch to Grid Layout"}
+              </Button>
+              
+              {useGridLayout ? (
+                <Button onClick={addNewRow} variant="outline" size="sm">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add New Row
                 </Button>
-                
-                {useGridLayout && (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={addNewRow}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Row
-                  </Button>
-                )}
-                
+              ) : (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button size="sm">
+                    <Button variant="outline" size="sm">
                       <Plus className="h-4 w-4 mr-2" />
                       Add Field
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent 
-                    className="w-56" 
-                    align="start"
-                    side="bottom"
-                    sideOffset={5}
-                    alignOffset={0}
-                    avoidCollisions={true}
-                    collisionPadding={10}
-                    maxHeight={300}
-                  >
+                  <DropdownMenuContent className="w-56">
                     <DropdownMenuItem disabled className="font-semibold">Basic Fields</DropdownMenuItem>
                     {FIELD_GROUPS.basic.map((type) => (
                       <DropdownMenuItem key={type} onClick={() => addElement(type as FormBlock["type"])}>
@@ -464,24 +520,24 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
                     ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
-                
-                <Button onClick={saveForm} variant="secondary" size="sm">
-                  Save Form
-                </Button>
-                
-                {formId && (
-                  <>
-                    <Button onClick={copyFormLink} variant="outline" size="sm">
-                      <Link className="h-4 w-4 mr-2" />
-                      Copy Link
-                    </Button>
-                    <Button onClick={copyEmbedCode} variant="outline" size="sm">
-                      <Copy className="h-4 w-4 mr-2" />
-                      Copy Embed
-                    </Button>
-                  </>
-                )}
-              </>
+              )}
+              
+              <Button onClick={saveForm} variant="secondary" size="sm">
+                Save Form
+              </Button>
+              
+              {formId && (
+                <>
+                  <Button onClick={copyFormLink} variant="outline" size="sm">
+                    <Link className="h-4 w-4 mr-2" />
+                    Copy Link
+                  </Button>
+                  <Button onClick={copyEmbedCode} variant="outline" size="sm">
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy Embed
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -501,6 +557,7 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
                 onUpdateElement={updateGridElement}
                 onDeleteElement={deleteGridElement}
                 ref={gridLayoutRef}
+                onReorderElements={reorderGridElements}
               />
             </div>
           ) : (
@@ -514,22 +571,29 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
                   >
                     {elements.map((element, index) => (
                       <Draggable key={element.id} draggableId={element.id} index={index}>
-                        {(provided) => (
+                        {(provided, snapshot) => (
                           <div
                             ref={provided.innerRef}
                             {...provided.draggableProps}
-                            {...provided.dragHandleProps}
-                            className={`${getColumnWidthClass(element.columnWidth || "1")} relative`}
+                            className={`${getColumnWidthClass(element.columnWidth || "1")} relative group`}
                           >
-                            <Card className="p-4">
+                            <Card className={`p-4 ${snapshot.isDragging ? 'border-primary' : ''}`}>
                               <div className="flex items-center justify-between mb-2">
-                                <Input
-                                  value={element.label}
-                                  onChange={(e) =>
-                                    updateElement(index, { label: e.target.value })
-                                  }
-                                  className="font-medium w-auto"
-                                />
+                                <div className="flex items-center gap-2 w-full">
+                                  <div 
+                                    {...provided.dragHandleProps}
+                                    className="cursor-grab hover:bg-gray-100 p-1 rounded"
+                                  >
+                                    <GripVertical className="h-4 w-4 text-gray-400" />
+                                  </div>
+                                  <Input
+                                    value={element.label}
+                                    onChange={(e) =>
+                                      updateElement(index, { label: e.target.value })
+                                    }
+                                    className="font-medium w-auto"
+                                  />
+                                </div>
                                 <div className="flex gap-2">
                                   <Dialog>
                                     <DialogTrigger asChild>
@@ -537,7 +601,7 @@ const FormBuilder = ({ preview = false }: FormBuilderProps) => {
                                         <Settings className="h-4 w-4" />
                                       </Button>
                                     </DialogTrigger>
-                                    <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                                    <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
                                       <DialogHeader>
                                         <DialogTitle>Field Settings</DialogTitle>
                                       </DialogHeader>

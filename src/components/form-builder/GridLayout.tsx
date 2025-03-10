@@ -1,6 +1,6 @@
 import React, { useState, forwardRef, useImperativeHandle } from 'react';
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Grid2X2, Grid3X3 } from "lucide-react";
+import { Plus, Trash2, Grid2X2, Grid3X3, MoveVertical } from "lucide-react";
 import { FormBlock } from "@/sdk";
 import GridCell from './GridCell';
 import {
@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 
 interface GridLayoutProps {
   elements: FormBlock[];
@@ -19,6 +20,7 @@ interface GridLayoutProps {
   onUpdateElement?: (id: string, updates: Partial<FormBlock>) => void;
   onDeleteElement?: (id: string) => void;
   fieldGroups: Record<string, string[]>;
+  onReorderElements?: (elements: FormBlock[]) => void;
 }
 
 // Grid layout templates
@@ -40,7 +42,8 @@ const GridLayout = forwardRef<{ addRow: (template?: string) => void; deleteRow: 
   onDeleteRow,
   onUpdateElement,
   onDeleteElement,
-  fieldGroups
+  fieldGroups,
+  onReorderElements
 }, ref) => {
   const [rows, setRows] = useState<Array<{ template: string, cells: number[] }>>([
     { template: "1-column", cells: [1] }
@@ -123,71 +126,163 @@ const GridLayout = forwardRef<{ addRow: (template?: string) => void; deleteRow: 
     ensureRows();
   }, [elements]);
 
-  return (
-    <div className="space-y-6">
-      {rows.map((row, rowIndex) => (
-        <div key={rowIndex} className="border border-dashed border-gray-300 p-4 rounded-lg">
-          <div className="flex justify-between items-center mb-4">
-            <div className="flex items-center gap-4">
-              <h3 className="text-sm font-medium text-gray-500">Row {rowIndex + 1}</h3>
-              <div className="flex items-center gap-2">
-                <Label htmlFor={`template-${rowIndex}`} className="text-xs">Layout:</Label>
-                <Select
-                  value={row.template}
-                  onValueChange={(value) => changeRowTemplate(rowIndex, value)}
-                >
-                  <SelectTrigger id={`template-${rowIndex}`} className="w-[140px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1-column">1 Column</SelectItem>
-                    <SelectItem value="2-column">2 Columns</SelectItem>
-                    <SelectItem value="3-column">3 Columns</SelectItem>
-                    <SelectItem value="2-1">2/3 + 1/3</SelectItem>
-                    <SelectItem value="1-2">1/3 + 2/3</SelectItem>
-                    <SelectItem value="1-1-1">1/3 + 1/3 + 1/3</SelectItem>
-                    <SelectItem value="2-1-1">2/4 + 1/4 + 1/4</SelectItem>
-                    <SelectItem value="1-2-1">1/4 + 2/4 + 1/4</SelectItem>
-                    <SelectItem value="1-1-2">1/4 + 1/4 + 2/4</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => onDeleteRow(rowIndex)}
-            >
-              <Trash2 className="h-4 w-4 mr-1" />
-              Delete Row
-            </Button>
-          </div>
+  // Handle drag end for grid elements
+  const handleDragEnd = (result: any) => {
+    if (!result.destination) return;
+
+    const { source, destination } = result;
+    
+    // Extract row and column info from droppable IDs
+    const sourceIdParts = source.droppableId.split('-');
+    const destIdParts = destination.droppableId.split('-');
+    
+    const sourceRowIndex = parseInt(sourceIdParts[1]);
+    const sourceColIndex = parseInt(sourceIdParts[2]);
+    const destRowIndex = parseInt(destIdParts[1]);
+    const destColIndex = parseInt(destIdParts[2]);
+    
+    // Create a copy of elements
+    const newElements = [...elements];
+    
+    // Find the element being moved
+    const elementToMove = newElements.find(
+      el => el.rowIndex === sourceRowIndex && el.colIndex === sourceColIndex
+    );
+    
+    // Check if there's already an element in the destination cell
+    const existingElementAtDest = newElements.find(
+      el => el.rowIndex === destRowIndex && el.colIndex === destColIndex && el.id !== elementToMove?.id
+    );
+    
+    if (elementToMove) {
+      // If there's already an element in the destination, we need to handle it
+      if (existingElementAtDest) {
+        console.log(`🔄 Cell already occupied! Moving displaced element...`);
+        
+        // Find an empty cell in the same row
+        const rowCells = rows[destRowIndex]?.cells || [];
+        let foundEmptyCell = false;
+        
+        // Try to find an empty cell in the same row
+        for (let i = 0; i < rowCells.length; i++) {
+          if (i !== destColIndex) {
+            const cellOccupied = newElements.some(
+              el => el.rowIndex === destRowIndex && el.colIndex === i
+            );
+            
+            if (!cellOccupied) {
+              // Move the existing element to this empty cell
+              existingElementAtDest.colIndex = i;
+              foundEmptyCell = true;
+              break;
+            }
+          }
+        }
+        
+        // If no empty cell in the same row, create a new row and move the element there
+        if (!foundEmptyCell) {
+          // Get the next row index
+          const nextRowIndex = Math.max(...newElements.map(el => el.rowIndex || 0)) + 1;
           
-          <div className="grid gap-4" style={{ 
-            gridTemplateColumns: row.cells.map(cell => `${cell}fr`).join(' ') || "1fr"
-          }}>
-            {row.cells.map((_, colIndex) => {
-              const element = getElementForCell(rowIndex, colIndex);
-              const isEmpty = !element;
-              
-              return (
-                <GridCell
-                  key={colIndex}
-                  rowIndex={rowIndex}
-                  colIndex={colIndex}
-                  block={element}
-                  isEmpty={isEmpty}
-                  onAddField={onAddElement}
-                  onUpdateField={onUpdateElement}
-                  onDeleteField={onDeleteElement}
-                  fieldGroups={fieldGroups}
-                />
-              );
-            })}
+          // Move the existing element to the new row
+          existingElementAtDest.rowIndex = nextRowIndex;
+          existingElementAtDest.colIndex = 0;
+          
+          // Add a new row to our state
+          addRow();
+        }
+      }
+      
+      // Update the element's position
+      elementToMove.rowIndex = destRowIndex;
+      elementToMove.colIndex = destColIndex;
+      
+      // If we have a callback to update elements, call it
+      if (onReorderElements) {
+        onReorderElements(newElements);
+      }
+    }
+  };
+
+  return (
+    <DragDropContext onDragEnd={handleDragEnd}>
+      <div className="space-y-6">
+        {rows.map((row, rowIndex) => (
+          <div key={rowIndex} className="border border-dashed border-gray-300 p-4 rounded-lg">
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex items-center gap-4">
+                <h3 className="text-sm font-medium text-gray-500">Row {rowIndex + 1}</h3>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor={`template-${rowIndex}`} className="text-xs">Layout:</Label>
+                  <Select
+                    value={row.template}
+                    onValueChange={(value) => changeRowTemplate(rowIndex, value)}
+                  >
+                    <SelectTrigger id={`template-${rowIndex}`} className="w-[140px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1-column">1 Column</SelectItem>
+                      <SelectItem value="2-column">2 Columns</SelectItem>
+                      <SelectItem value="3-column">3 Columns</SelectItem>
+                      <SelectItem value="2-1">2/3 + 1/3</SelectItem>
+                      <SelectItem value="1-2">1/3 + 2/3</SelectItem>
+                      <SelectItem value="1-1-1">1/3 + 1/3 + 1/3</SelectItem>
+                      <SelectItem value="2-1-1">2/4 + 1/4 + 1/4</SelectItem>
+                      <SelectItem value="1-2-1">1/4 + 2/4 + 1/4</SelectItem>
+                      <SelectItem value="1-1-2">1/4 + 1/4 + 2/4</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => onDeleteRow(rowIndex)}
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Delete Row
+              </Button>
+            </div>
+            
+            <div className="grid gap-4" style={{ 
+              gridTemplateColumns: row.cells.map(cell => `${cell}fr`).join(' ') || "1fr"
+            }}>
+              {row.cells.map((_, colIndex) => {
+                const element = getElementForCell(rowIndex, colIndex);
+                const isEmpty = !element;
+                
+                return (
+                  <Droppable 
+                    droppableId={`cell-${rowIndex}-${colIndex}`} 
+                    key={`cell-${rowIndex}-${colIndex}`}
+                  >
+                    {(provided) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.droppableProps}
+                      >
+                        <GridCell
+                          rowIndex={rowIndex}
+                          colIndex={colIndex}
+                          block={element}
+                          isEmpty={isEmpty}
+                          onAddField={onAddElement}
+                          onUpdateField={onUpdateElement}
+                          onDeleteField={onDeleteElement}
+                          fieldGroups={fieldGroups}
+                        />
+                        {provided.placeholder}
+                      </div>
+                    )}
+                  </Droppable>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+    </DragDropContext>
   );
 });
 
