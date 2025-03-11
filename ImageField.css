@@ -1,10 +1,12 @@
 .image-field {
   width: 100%;
+  max-width: 100%;
 }
 
 .image-field-container {
   position: relative;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
+  max-width: 100%;
 }
 
 .image-field-container.full-field {
@@ -21,6 +23,7 @@
   display: block;
   max-width: 100%;
   transition: filter 0.3s;
+  height: auto;
 }
 
 .image-overlay {
@@ -36,6 +39,7 @@
   opacity: 0;
   transition: opacity 0.3s;
   cursor: pointer;
+  border-radius: inherit;
 }
 
 .image-wrapper:hover .image-overlay {
@@ -57,6 +61,8 @@
   color: #666;
   font-style: italic;
   text-align: center;
+  max-width: 100%;
+  word-wrap: break-word;
 }
 
 .image-field-placeholder {
@@ -69,6 +75,7 @@
   justify-content: center;
   color: #999;
   border-radius: 4px;
+  max-width: 100%;
 }
 
 /* Modal styles */
@@ -80,6 +87,7 @@
 .preview-image {
   max-width: 100%;
   max-height: 80vh;
+  object-fit: contain;
 }
 
 .preview-caption {
@@ -88,4 +96,27 @@
   color: #666;
   background-color: #f9f9f9;
   border-top: 1px solid #f0f0f0;
+  word-wrap: break-word;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .zoom-icon {
+    font-size: 20px;
+  }
+  
+  .image-field-placeholder {
+    height: 120px;
+  }
+}
+
+@media (max-width: 576px) {
+  .image-field-placeholder {
+    height: 100px;
+  }
+  
+  .preview-caption {
+    padding: 12px;
+    font-size: 13px;
+  }
 } 

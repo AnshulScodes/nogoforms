@@ -1,9 +1,10 @@
 .field-preview-card {
   background-color: white;
   border: 1px solid #e8e8e8;
-  border-radius: 4px;
-  padding: 12px;
-  width: 280px;
+  border-radius: 6px;
+  padding: 16px;
+  width: 300px;
+  max-width: 100%;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   margin-top: 8px;
   z-index: 1001; /* Ensure it appears above other elements */
@@ -12,64 +13,81 @@
 .field-preview-card h4 {
   margin-top: 0;
   margin-bottom: 12px;
-  font-size: 14px;
+  font-size: 15px;
   color: #1890ff;
   border-bottom: 1px solid #f0f0f0;
   padding-bottom: 8px;
 }
 
 .preview-content {
-  padding: 8px;
+  padding: 12px;
   background-color: #fafafa;
-  border-radius: 4px;
+  border-radius: 6px;
+  width: 100%;
 }
 
 .preview-content label {
   display: block;
-  margin-bottom: 6px;
-  font-size: 13px;
+  margin-bottom: 8px;
+  font-size: 14px;
   color: #333;
+  font-weight: 500;
+}
+
+.preview-content .ant-input,
+.preview-content .ant-select,
+.preview-content .ant-picker {
+  width: 100%;
 }
 
 .image-preview-placeholder {
-  height: 100px;
+  height: 120px;
   background-color: #f5f5f5;
   border: 1px dashed #d9d9d9;
-  border-radius: 4px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #999;
   overflow: hidden;
+  width: 100%;
 }
 
 .image-preview-content {
   display: flex;
   flex-direction: row;
   align-items: center;
-  padding: 12px;
-  gap: 12px;
+  padding: 16px;
+  gap: 16px;
+  width: 100%;
 }
 
 .image-icon {
-  font-size: 32px;
+  font-size: 36px;
   color: #1890ff;
+  flex-shrink: 0;
 }
 
 .image-preview-text {
   display: flex;
   flex-direction: column;
   text-align: left;
+  flex: 1;
+}
+
+.image-preview-text div {
+  font-weight: 500;
+  color: #333;
 }
 
 .image-preview-text small {
-  font-size: 11px;
+  font-size: 12px;
   color: #999;
   margin-top: 4px;
 }
 
 .field-type-option {
-  padding: 6px 12px;
+  padding: 8px 12px;
   cursor: pointer;
   transition: background-color 0.2s;
   width: 100%;
@@ -85,14 +103,55 @@
   background-color: white;
   border-top: 1px solid #f0f0f0;
   position: relative;
+  width: 100%;
 }
 
 /* Dropdown styling */
 .field-type-dropdown {
-  min-width: 220px;
+  min-width: 240px;
+  max-width: 320px;
   max-height: 500px;
   overflow-y: auto;
   background-color: white;
-  border-radius: 4px;
+  border-radius: 6px;
   box-shadow: 0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 9px 28px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .field-preview-card {
+    width: 280px;
+    padding: 12px;
+  }
+  
+  .preview-content {
+    padding: 10px;
+  }
+  
+  .image-preview-placeholder {
+    height: 100px;
+  }
+  
+  .image-preview-content {
+    padding: 12px;
+    gap: 12px;
+  }
+  
+  .image-icon {
+    font-size: 30px;
+  }
+}
+
+@media (max-width: 576px) {
+  .field-preview-card {
+    width: 260px;
+  }
+  
+  .image-preview-placeholder {
+    height: 90px;
+  }
+  
+  .image-icon {
+    font-size: 24px;
+  }
 } 

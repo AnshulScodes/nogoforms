@@ -318,6 +318,7 @@ const FormBuilder = ({ initialConfig, onChange }: FormBuilderProps) => {
                 type="primary" 
                 icon={<PlusOutlined />}
                 onClick={() => setDropdownVisible(true)}
+                size="large"
               >
                 Add Field
               </Button>
@@ -325,28 +326,30 @@ const FormBuilder = ({ initialConfig, onChange }: FormBuilderProps) => {
           </div>
         </div>
         
-        <div className="form-fields">
-          {fields.length === 0 ? (
-            <Empty
-              description="No fields added yet. Click 'Add Field' to start building your form."
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              className="empty-form-message"
-            />
-          ) : (
-            fields.map((field, index) => (
-              <FormField
-                key={field.id}
-                field={field}
-                index={index}
-                moveField={moveField}
-                onEdit={() => editField(index)}
-                onDelete={() => deleteField(index)}
-                onMoveUp={() => moveFieldUp(index)}
-                onMoveDown={() => moveFieldDown(index)}
-                fieldsCount={fields.length}
+        <div className="form-fields-container">
+          <div className="form-fields">
+            {fields.length === 0 ? (
+              <Empty
+                description="No fields added yet. Click 'Add Field' to start building your form."
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                className="empty-form-message"
               />
-            ))
-          )}
+            ) : (
+              fields.map((field, index) => (
+                <FormField
+                  key={field.id}
+                  field={field}
+                  index={index}
+                  moveField={moveField}
+                  onEdit={() => editField(index)}
+                  onDelete={() => deleteField(index)}
+                  onMoveUp={() => moveFieldUp(index)}
+                  onMoveDown={() => moveFieldDown(index)}
+                  fieldsCount={fields.length}
+                />
+              ))
+            )}
+          </div>
         </div>
         
         <FieldSettingsDialog

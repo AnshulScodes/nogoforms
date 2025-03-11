@@ -3,15 +3,27 @@
   border-radius: 8px;
   padding: 24px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
 }
 
 .form-preview-field {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
+}
+
+.form-preview-item {
+  margin-bottom: 16px;
 }
 
 .form-preview-item .ant-form-item-label > label {
   font-weight: 500;
   color: #333;
+  font-size: 1rem;
+}
+
+.form-preview-item .ant-form-item-control {
+  max-width: 100%;
 }
 
 .form-preview-heading h1,
@@ -21,33 +33,55 @@
   margin-top: 0;
   margin-bottom: 16px;
   color: #333;
+  line-height: 1.4;
+}
+
+.form-preview-heading h1 {
+  font-size: 2rem;
+}
+
+.form-preview-heading h2 {
+  font-size: 1.75rem;
+}
+
+.form-preview-heading h3 {
+  font-size: 1.5rem;
+}
+
+.form-preview-heading h4 {
+  font-size: 1.25rem;
 }
 
 .form-preview-paragraph p {
   margin-top: 0;
   margin-bottom: 16px;
   color: #666;
+  line-height: 1.6;
+  font-size: 1rem;
 }
 
 .form-preview-divider {
-  margin: 16px 0;
+  margin: 24px 0;
 }
 
 .form-field-image {
-  margin-bottom: 12px;
+  margin-bottom: 16px;
   border-radius: 4px;
   overflow: hidden;
+  max-width: 100%;
 }
 
 .form-field-image img {
   display: block;
   max-width: 100%;
   margin: 0 auto;
+  height: auto;
 }
 
 .form-field-image.full-field {
   margin: 0;
   padding: 0;
+  width: 100%;
 }
 
 .full-field-image {
@@ -55,6 +89,7 @@
   height: auto;
   display: block;
   border-radius: 4px;
+  max-width: 100%;
 }
 
 .image-caption {
@@ -65,12 +100,26 @@
   text-align: center;
 }
 
+/* Input fields */
+.ant-input,
+.ant-input-number,
+.ant-picker,
+.ant-select {
+  width: 100%;
+  max-width: 100%;
+}
+
+.ant-input-number {
+  width: 100%;
+}
+
 /* Checkbox and Radio styles */
 .ant-checkbox-group,
 .ant-radio-group {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  width: 100%;
 }
 
 .ant-checkbox-wrapper,
@@ -79,8 +128,41 @@
 }
 
 /* Responsive styles */
-@media (max-width: 576px) {
+@media (max-width: 992px) {
+  .form-preview {
+    padding: 20px;
+  }
+  
+  .form-preview-heading h1 {
+    font-size: 1.75rem;
+  }
+  
+  .form-preview-heading h2 {
+    font-size: 1.5rem;
+  }
+  
+  .form-preview-heading h3 {
+    font-size: 1.25rem;
+  }
+  
+  .form-preview-heading h4 {
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 768px) {
   .form-preview {
     padding: 16px;
+  }
+}
+
+@media (max-width: 576px) {
+  .form-preview {
+    padding: 12px;
+    border-radius: 4px;
+  }
+  
+  .form-preview-field {
+    margin-bottom: 16px;
   }
 } 
