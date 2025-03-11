@@ -45,6 +45,11 @@ export interface FormBlockConfig {
   imageWidth?: number;
   imageHeight?: number;
   imageFullField?: boolean;
+  imageAlt?: string;
+  imageAlignment?: 'left' | 'center' | 'right';
+  imageBorderRadius?: number;
+  imageBorder?: boolean;
+  imageCaption?: string;
   
   // Heading properties
   headingLevel?: 'h1' | 'h2' | 'h3' | 'h4';
@@ -85,6 +90,11 @@ export const createDefaultField = (type: FormBlockType): FormBlockConfig => {
         imageWidth: 400,
         imageHeight: 200,
         imageFullField: false,
+        imageAlt: 'Example image',
+        imageAlignment: 'center',
+        imageBorderRadius: 4,
+        imageBorder: false,
+        imageCaption: '',
       };
     case 'heading':
       return {

@@ -42,6 +42,7 @@
 .form-field-image img {
   display: block;
   max-width: 100%;
+  margin: 0 auto;
 }
 
 .form-field-image.full-field {
@@ -54,6 +55,14 @@
   height: auto;
   display: block;
   border-radius: 4px;
+}
+
+.image-caption {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #666;
+  font-style: italic;
+  text-align: center;
 }
 
 /* Checkbox and Radio styles */

@@ -42,6 +42,11 @@ export const FieldSettingsDialog: React.FC<FieldSettingsDialogProps> = ({
         imageWidth: field.imageWidth || 300,
         imageHeight: field.imageHeight || 200,
         imageFullField: field.imageFullField || false,
+        imageAlt: field.imageAlt || '',
+        imageAlignment: field.imageAlignment || 'center',
+        imageBorderRadius: field.imageBorderRadius || 0,
+        imageBorder: field.imageBorder || false,
+        imageCaption: field.imageCaption || '',
       });
 
       // Set options for select, checkbox, radio
@@ -299,9 +304,27 @@ export const FieldSettingsDialog: React.FC<FieldSettingsDialogProps> = ({
           showUploadList={false}
           action="https://www.mocky.io/v2/5cc8019d300000980a055e76" // Replace with your actual upload endpoint
           onChange={handleImageUpload}
+          accept="image/*"
+          beforeUpload={(file) => {
+            const isImage = file.type.startsWith('image/');
+            if (!isImage) {
+              message.error('You can only upload image files!');
+            }
+            const isLt2M = file.size / 1024 / 1024 < 2;
+            if (!isLt2M) {
+              message.error('Image must be smaller than 2MB!');
+            }
+            return isImage && isLt2M;
+          }}
         >
           {imagePreview ? (
-            <img src={imagePreview} alt="Preview" style={{ width: '100%' }} />
+            <div className="image-preview-wrapper">
+              <img src={imagePreview} alt="Preview" style={{ width: '100%' }} />
+              <div className="image-preview-overlay">
+                <PlusOutlined />
+                <div>Change</div>
+              </div>
+            </div>
           ) : (
             <div>
               <PlusOutlined />
@@ -312,11 +335,23 @@ export const FieldSettingsDialog: React.FC<FieldSettingsDialogProps> = ({
         <div className="upload-instructions">
           <h4>Upload an Image</h4>
           <p>Click the box to upload an image or enter a URL above.</p>
-          <p>Recommended size: 800x600 pixels</p>
+          <p>Supported formats: JPG, PNG, GIF, SVG</p>
+          <p>Maximum size: 2MB</p>
         </div>
       </div>
 
-      <Form.Item name="imageFullField" label="Image Display Mode" valuePropName="checked">
+      <Form.Item name="imageAlt" label="Alt Text (Accessibility)">
+        <Input 
+          placeholder="Describe the image for screen readers" 
+          suffix={
+            <Tooltip title="Helps make your form accessible to people using screen readers">
+              <InfoCircleOutlined style={{ color: 'rgba(0,0,0,.45)' }} />
+            </Tooltip>
+          }
+        />
+      </Form.Item>
+
+      <Form.Item name="imageFullField" label="Image Display Mode">
         <Select 
           defaultValue={imageFullField ? "full" : "inline"}
           onChange={(value) => handleImageFullFieldChange(value === "full")}
@@ -328,15 +363,56 @@ export const FieldSettingsDialog: React.FC<FieldSettingsDialogProps> = ({
 
       {!imageFullField && (
         <>
-          <Form.Item name="imageWidth" label="Image Width (px)">
-            <Input type="number" placeholder="Width in pixels" />
+          <Form.Item name="imageWidth" label="Image Width">
+            <Input 
+              type="number" 
+              placeholder="Width in pixels" 
+              addonAfter="px"
+              min={50}
+              max={2000}
+            />
           </Form.Item>
 
-          <Form.Item name="imageHeight" label="Image Height (px)">
-            <Input type="number" placeholder="Height in pixels" />
+          <Form.Item name="imageHeight" label="Image Height">
+            <Input 
+              type="number" 
+              placeholder="Height in pixels" 
+              addonAfter="px"
+              min={50}
+              max={2000}
+            />
+          </Form.Item>
+
+          <Form.Item name="imageAlignment" label="Image Alignment">
+            <Select defaultValue="center">
+              <Select.Option value="left">Left</Select.Option>
+              <Select.Option value="center">Center</Select.Option>
+              <Select.Option value="right">Right</Select.Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item name="imageBorderRadius" label="Border Radius">
+            <Input 
+              type="number" 
+              placeholder="Rounded corners" 
+              addonAfter="px"
+              min={0}
+              max={50}
+            />
+          </Form.Item>
+
+          <Form.Item name="imageBorder" label="Border" valuePropName="checked">
+            <Switch />
           </Form.Item>
         </>
       )}
+
+      <Form.Item name="imageCaption" label="Caption">
+        <Input.TextArea 
+          placeholder="Add a caption below the image (optional)" 
+          rows={2}
+        />
+      </Form.Item>
     </div>
   );
 

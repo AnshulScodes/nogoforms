@@ -118,8 +118,13 @@ export const FieldPreviewCard: React.FC<FieldPreviewCardProps> = ({ fieldType })
           <div className="preview-content">
             <label>Image</label>
             <div className="image-preview-placeholder">
-              <div className="image-icon">🖼️</div>
-              <div>Image Display</div>
+              <div className="image-preview-content">
+                <div className="image-icon">🖼️</div>
+                <div className="image-preview-text">
+                  <div>Image Display</div>
+                  <small>Supports JPG, PNG, GIF, SVG</small>
+                </div>
+              </div>
             </div>
           </div>
         );

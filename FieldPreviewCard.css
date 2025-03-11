@@ -32,20 +32,40 @@
 }
 
 .image-preview-placeholder {
-  height: 80px;
+  height: 100px;
   background-color: #f5f5f5;
   border: 1px dashed #d9d9d9;
   border-radius: 4px;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   color: #999;
+  overflow: hidden;
+}
+
+.image-preview-content {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 12px;
+  gap: 12px;
 }
 
 .image-icon {
-  font-size: 24px;
-  margin-bottom: 4px;
+  font-size: 32px;
+  color: #1890ff;
+}
+
+.image-preview-text {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.image-preview-text small {
+  font-size: 11px;
+  color: #999;
+  margin-top: 4px;
 }
 
 .field-type-option {

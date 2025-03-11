@@ -2,6 +2,7 @@ import React from 'react';
 import { Form, Input, Checkbox, Radio, Select, DatePicker, TimePicker, Upload, Button, Divider } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 import { FormBlockConfig } from './FormBlockSDK';
+import { ImageField } from './ImageField';
 import './FormPreview.css';
 
 interface FormPreviewProps {
@@ -19,25 +20,39 @@ export const FormPreview: React.FC<FormPreviewProps> = ({ fields, readOnly = fal
         <div className="form-field-image full-field">
           <img 
             src={field.imageUrl} 
-            alt={field.label || 'Field image'} 
+            alt={field.imageAlt || field.label || 'Field image'} 
             className="full-field-image"
           />
+          {field.imageCaption && (
+            <div className="image-caption">{field.imageCaption}</div>
+          )}
         </div>
       );
     }
 
-    // Otherwise return the inline image with specified dimensions
+    // Otherwise return the inline image with specified dimensions and styling
+    const imageStyle: React.CSSProperties = {
+      width: field.imageWidth ? `${field.imageWidth}px` : '100%',
+      height: field.imageHeight ? `${field.imageHeight}px` : 'auto',
+      objectFit: 'contain',
+      borderRadius: field.imageBorderRadius ? `${field.imageBorderRadius}px` : '0',
+      border: field.imageBorder ? '1px solid #d9d9d9' : 'none',
+    };
+
+    const containerStyle: React.CSSProperties = {
+      textAlign: field.imageAlignment || 'center',
+    };
+
     return (
-      <div className="form-field-image">
+      <div className="form-field-image" style={containerStyle}>
         <img 
           src={field.imageUrl} 
-          alt={field.label || 'Field image'} 
-          style={{ 
-            width: field.imageWidth ? `${field.imageWidth}px` : '100%',
-            height: field.imageHeight ? `${field.imageHeight}px` : 'auto',
-            objectFit: 'contain'
-          }} 
+          alt={field.imageAlt || field.label || 'Field image'} 
+          style={imageStyle}
         />
+        {field.imageCaption && (
+          <div className="image-caption">{field.imageCaption}</div>
+        )}
       </div>
     );
   };
@@ -45,7 +60,7 @@ export const FormPreview: React.FC<FormPreviewProps> = ({ fields, readOnly = fal
   const renderField = (field: FormBlockConfig) => {
     // If it's a full-field image, only render the image
     if (field.type === 'image' && field.imageFullField) {
-      return renderFieldImage(field);
+      return <ImageField field={field} />;
     }
 
     switch (field.type) {
@@ -275,7 +290,7 @@ export const FormPreview: React.FC<FormPreviewProps> = ({ fields, readOnly = fal
             help={field.description}
             className="form-preview-item"
           >
-            {renderFieldImage(field)}
+            <ImageField field={field} />
           </Form.Item>
         );
       case 'heading':
