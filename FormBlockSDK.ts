@@ -53,6 +53,12 @@ export interface FormBlockConfig {
   
   // Heading properties
   headingLevel?: 'h1' | 'h2' | 'h3' | 'h4';
+  
+  // Grid layout properties
+  rowIndex?: number;
+  colIndex?: number;
+  colSpan?: number;
+  rowSpan?: number;
 }
 
 export interface FormConfig {

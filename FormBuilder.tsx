@@ -8,7 +8,8 @@ import {
   ArrowUpOutlined, 
   ArrowDownOutlined,
   DragOutlined,
-  InfoCircleOutlined
+  InfoCircleOutlined,
+  LayoutOutlined
 } from '@ant-design/icons';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -16,6 +17,7 @@ import { FormPreview } from './FormPreview';
 import './FormBuilder.css';
 import { FieldSettingsDialog } from './FieldSettingsDialog';
 import { FieldPreviewCard } from './FieldPreviewCard';
+import GridLayout from '../components/form-builder/GridLayout';
 
 interface FormBuilderProps {
   initialConfig: FormBlockConfig[];
@@ -183,6 +185,10 @@ const FormBuilder = ({ initialConfig, onChange }: FormBuilderProps) => {
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [dropdownVisible, setDropdownVisible] = useState(false);
   
+  // Add state for layout mode
+  const [useGridLayout, setUseGridLayout] = useState(true);
+  const gridLayoutRef = useRef<{ addRow: (template?: string) => void; deleteRow: (rowIndex: number) => void } | null>(null);
+  
   useEffect(() => {
     onChange(fields);
   }, [fields, onChange]);
@@ -193,15 +199,36 @@ const FormBuilder = ({ initialConfig, onChange }: FormBuilderProps) => {
     setDropdownVisible(false);
   };
   
+  const addFieldToGrid = (type: FormBlockType, rowIndex: number, colIndex: number) => {
+    const newField = createDefaultField(type);
+    // Add grid position information
+    newField.rowIndex = rowIndex;
+    newField.colIndex = colIndex;
+    setFields([...fields, newField]);
+  };
+  
   const deleteField = (index: number) => {
     const newFields = [...fields];
     newFields.splice(index, 1);
     setFields(newFields);
   };
   
+  const deleteFieldById = (id: string) => {
+    const newFields = fields.filter(field => field.id !== id);
+    setFields(newFields);
+  };
+  
   const editField = (index: number) => {
     setEditingField(fields[index]);
     setIsSettingsDialogVisible(true);
+  };
+  
+  const editFieldById = (id: string) => {
+    const field = fields.find(f => f.id === id);
+    if (field) {
+      setEditingField(field);
+      setIsSettingsDialogVisible(true);
+    }
   };
   
   const handleFieldUpdate = (updatedField: FormBlockConfig) => {
@@ -211,6 +238,13 @@ const FormBuilder = ({ initialConfig, onChange }: FormBuilderProps) => {
     setFields(newFields);
     setIsSettingsDialogVisible(false);
     setEditingField(null);
+  };
+  
+  const updateFieldById = (id: string, updates: Partial<FormBlockConfig>) => {
+    const newFields = fields.map((field) =>
+      field.id === id ? { ...field, ...updates } : field
+    );
+    setFields(newFields);
   };
   
   const moveField = (dragIndex: number, hoverIndex: number) => {
@@ -250,6 +284,34 @@ const FormBuilder = ({ initialConfig, onChange }: FormBuilderProps) => {
     setHoveredFieldType(null);
   };
   
+  const addGridRow = (template: string = "1-column") => {
+    if (gridLayoutRef.current) {
+      gridLayoutRef.current.addRow(template);
+    }
+  };
+  
+  const deleteGridRow = (rowIndex: number) => {
+    if (gridLayoutRef.current) {
+      // First, remove all fields in this row
+      const newFields = fields.filter(field => field.rowIndex !== rowIndex);
+      
+      // Then, update rowIndex for all fields in rows after this one
+      const updatedFields = newFields.map(field => {
+        if (field.rowIndex !== undefined && field.rowIndex > rowIndex) {
+          return { ...field, rowIndex: field.rowIndex - 1 };
+        }
+        return field;
+      });
+      
+      setFields(updatedFields);
+      gridLayoutRef.current.deleteRow(rowIndex);
+    }
+  };
+  
+  const handleReorderElements = (reorderedElements: FormBlockConfig[]) => {
+    setFields(reorderedElements);
+  };
+  
   // Field type options with enhanced hover behavior
   const fieldTypeItems = [
     { key: 'text', value: 'text', label: 'Text Field' },
@@ -283,74 +345,120 @@ const FormBuilder = ({ initialConfig, onChange }: FormBuilderProps) => {
     )
   }));
   
+  // Group field types for the grid layout
+  const fieldGroups = {
+    "Basic Fields": ["text", "textarea", "number", "email", "phone", "url"],
+    "Choice Fields": ["checkbox", "radio", "select"],
+    "Date & Time": ["date", "time"],
+    "File Uploads": ["file"],
+    "Layout Elements": ["image", "heading", "paragraph", "divider"]
+  };
+  
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="form-builder">
         <div className="form-builder-header">
           <h2>Form Builder</h2>
           <div className="form-builder-actions">
-            <Dropdown
-              menu={{
-                items: fieldTypeOptions,
-                onClick: ({ key }) => addField(key as FormBlockType),
-              }}
-              trigger={['click']}
-              placement="bottomRight"
-              getPopupContainer={(trigger) => trigger.parentElement || document.body}
-              dropdownRender={(menu) => (
-                <div className="field-type-dropdown">
-                  <div className="field-type-dropdown-header">
-                    <h4>Select Field Type</h4>
-                    <p>Hover over a field type to see a preview</p>
-                  </div>
-                  {menu}
-                  {hoveredFieldType && (
-                    <div className="field-preview-container">
-                      <FieldPreviewCard fieldType={hoveredFieldType} />
-                    </div>
-                  )}
-                </div>
-              )}
-              open={dropdownVisible}
-              onOpenChange={setDropdownVisible}
-            >
+            <Tooltip title={useGridLayout ? "Switch to List Layout" : "Switch to Grid Layout"}>
+              <Button 
+                icon={<LayoutOutlined />}
+                onClick={() => setUseGridLayout(!useGridLayout)}
+                className="layout-toggle-btn"
+              >
+                {useGridLayout ? "List View" : "Grid View"}
+              </Button>
+            </Tooltip>
+            
+            {useGridLayout && (
               <Button 
                 type="primary" 
-                icon={<PlusOutlined />}
-                onClick={() => setDropdownVisible(true)}
-                size="large"
+                onClick={() => addGridRow()}
+                className="add-row-btn"
               >
-                Add Field
+                Add Row
               </Button>
-            </Dropdown>
-          </div>
-        </div>
-        
-        <div className="form-fields-container">
-          <div className="form-fields">
-            {fields.length === 0 ? (
-              <Empty
-                description="No fields added yet. Click 'Add Field' to start building your form."
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                className="empty-form-message"
-              />
-            ) : (
-              fields.map((field, index) => (
-                <FormField
-                  key={field.id}
-                  field={field}
-                  index={index}
-                  moveField={moveField}
-                  onEdit={() => editField(index)}
-                  onDelete={() => deleteField(index)}
-                  onMoveUp={() => moveFieldUp(index)}
-                  onMoveDown={() => moveFieldDown(index)}
-                  fieldsCount={fields.length}
-                />
-              ))
+            )}
+            
+            {!useGridLayout && (
+              <Dropdown
+                menu={{
+                  items: fieldTypeOptions,
+                  onClick: ({ key }) => addField(key as FormBlockType),
+                }}
+                trigger={['click']}
+                placement="bottomRight"
+                getPopupContainer={(trigger) => trigger.parentElement || document.body}
+                dropdownRender={(menu) => (
+                  <div className="field-type-dropdown">
+                    <div className="field-type-dropdown-header">
+                      <h4>Select Field Type</h4>
+                      <p>Hover over a field type to see a preview</p>
+                    </div>
+                    {menu}
+                    {hoveredFieldType && (
+                      <div className="field-preview-container">
+                        <FieldPreviewCard fieldType={hoveredFieldType} />
+                      </div>
+                    )}
+                  </div>
+                )}
+                open={dropdownVisible}
+                onOpenChange={setDropdownVisible}
+              >
+                <Button 
+                  type="primary" 
+                  icon={<PlusOutlined />}
+                  onClick={() => setDropdownVisible(true)}
+                  size="large"
+                >
+                  Add Field
+                </Button>
+              </Dropdown>
             )}
           </div>
         </div>
+        
+        {useGridLayout ? (
+          <div className="grid-layout-container">
+            <GridLayout
+              ref={gridLayoutRef}
+              elements={fields}
+              onAddElement={addFieldToGrid}
+              onDeleteRow={deleteGridRow}
+              onUpdateElement={updateFieldById}
+              onDeleteElement={deleteFieldById}
+              fieldGroups={fieldGroups}
+              onReorderElements={handleReorderElements}
+            />
+          </div>
+        ) : (
+          <div className="form-fields-container">
+            <div className="form-fields">
+              {fields.length === 0 ? (
+                <Empty
+                  description="No fields added yet. Click 'Add Field' to start building your form."
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  className="empty-form-message"
+                />
+              ) : (
+                fields.map((field, index) => (
+                  <FormField
+                    key={field.id}
+                    field={field}
+                    index={index}
+                    moveField={moveField}
+                    onEdit={() => editField(index)}
+                    onDelete={() => deleteField(index)}
+                    onMoveUp={() => moveFieldUp(index)}
+                    onMoveDown={() => moveFieldDown(index)}
+                    fieldsCount={fields.length}
+                  />
+                ))
+              )}
+            </div>
+          </div>
+        )}
         
         <FieldSettingsDialog
           visible={isSettingsDialogVisible}
