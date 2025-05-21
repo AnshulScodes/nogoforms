@@ -10,7 +10,6 @@ import Dashboard from "./pages/Dashboard";
 import FormBuilder from "./components/form-builder/FormBuilder";
 import PublicFormView from "./pages/PublicFormView";
 import ApiKeysManagement from "./pages/ApiKeysManagement";
-import { ApiKeyVerification } from "@/components/ApiKeyVerification";
 import FormResponses from "./pages/FormResponses";
 import { posthog } from "@/integrations/posthog/client";
 
@@ -40,13 +39,12 @@ const App = () => (
         <Navigation />
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/verify-api-key" element={<ApiKeyVerification />} />
-          <Route path="/dashboard" element={<ApiKeyGuard><Dashboard /></ApiKeyGuard>} />
-          <Route path="/builder" element={<ApiKeyGuard><FormBuilder /></ApiKeyGuard>} />
-          <Route path="/builder/:formId" element={<ApiKeyGuard><FormBuilder /></ApiKeyGuard>} />
-          <Route path="/api-keys" element={<ApiKeyGuard><ApiKeysManagement /></ApiKeyGuard>} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/builder" element={<FormBuilder />} />
+          <Route path="/builder/:formId" element={<FormBuilder />} />
+          <Route path="/api-keys" element={<ApiKeysManagement />} />
           <Route path="/form/:formId" element={<PublicFormView />} />
-          <Route path="/forms/:formId/responses" element={<ApiKeyGuard><FormResponses /></ApiKeyGuard>} />
+          <Route path="/forms/:formId/responses" element={<FormResponses />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

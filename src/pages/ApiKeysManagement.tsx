@@ -16,9 +16,6 @@ export default function ApiKeysManagement() {
   const [createdKey, setCreatedKey] = useState<{key: string, name: string} | null>(null);
   const { toast } = useToast();
 
-  // Check if user is admin
-  const [isAdmin, setIsAdmin] = useState(true); // Always true for demo
-
   const loadApiKeys = async () => {
     setIsLoading(true);
     try {
@@ -60,7 +57,6 @@ export default function ApiKeysManagement() {
         .insert({
           key,
           name: newKeyName,
-          user_id: null, // No user context
           revoked: false
         })
         .select()
