@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
+import { posthog } from "@/integrations/posthog/client";
 
 interface Form {
   id: string;
@@ -20,21 +20,15 @@ interface Form {
 export default function Dashboard() {
   const [forms, setForms] = useState<Form[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
 
   const loadForms = async () => {
-    if (!user) return;
-    
     setLoading(true);
-    
     try {
-      // Get forms created by the current user
+      // Get all forms (or filter as needed)
       const { data: formsData, error: formsError } = await supabase
         .from('forms')
         .select('*')
-        .eq('owner_id', user.id)
         .order('updated_at', { ascending: false });
-      
       if (formsError) throw formsError;
       
       // Get submission counts for each form
@@ -55,8 +49,17 @@ export default function Dashboard() {
       );
       
       setForms(formsWithCounts);
+      
+      // Track forms loaded
+      posthog.capture('forms_loaded', {
+        count: formsWithCounts.length,
+        has_forms: formsWithCounts.length > 0
+      });
     } catch (error) {
       console.error("Error loading forms:", error);
+      posthog.capture('forms_load_error', {
+        error: error.message
+      });
     } finally {
       setLoading(false);
     }
@@ -73,8 +76,7 @@ export default function Dashboard() {
         {
           event: '*',
           schema: 'public',
-          table: 'forms',
-          filter: `owner_id=eq.${user?.id}`
+          table: 'forms'
         },
         () => {
           loadForms();
@@ -85,13 +87,13 @@ export default function Dashboard() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, []);
 
   return (
     <div className="container mx-auto py-10">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Your Forms</h1>
-        <Button asChild>
+        <Button asChild onClick={() => posthog.capture('create_form_clicked')}>
           <Link to="/builder">
             <Plus className="h-4 w-4 mr-2" />
             Create New Form
@@ -161,10 +163,19 @@ export default function Dashboard() {
                 </div>
               </CardContent>
               <CardFooter className="flex justify-between gap-2">
-                <Button variant="outline" asChild className="flex-1">
+                <Button 
+                  variant="outline" 
+                  asChild 
+                  className="flex-1"
+                  onClick={() => posthog.capture('view_form_clicked', { form_id: form.id })}
+                >
                   <Link to={`/form/${form.id}`}>View Form</Link>
                 </Button>
-                <Button asChild className="flex-1">
+                <Button 
+                  asChild 
+                  className="flex-1"
+                  onClick={() => posthog.capture('edit_form_clicked', { form_id: form.id })}
+                >
                   <Link to={`/builder/${form.id}`}>Edit</Link>
                 </Button>
               </CardFooter>
@@ -174,6 +185,10 @@ export default function Dashboard() {
                   asChild 
                   className="w-full"
                   disabled={form.submission_count === 0}
+                  onClick={() => posthog.capture('view_responses_clicked', { 
+                    form_id: form.id,
+                    submission_count: form.submission_count 
+                  })}
                 >
                   <Link to={`/forms/${form.id}/responses`}>
                     View Responses {form.submission_count > 0 && `(${form.submission_count})`}

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { getApiKeys, revokeApiKey, ApiKey } from "@/services/apiKeys";
 import { Button } from "@/components/ui/button";
@@ -9,7 +8,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
-import { useAuth } from "@/hooks/useAuth";
 
 export default function ApiKeysManagement() {
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
@@ -17,33 +15,9 @@ export default function ApiKeysManagement() {
   const [newKeyName, setNewKeyName] = useState("");
   const [createdKey, setCreatedKey] = useState<{key: string, name: string} | null>(null);
   const { toast } = useToast();
-  const { user } = useAuth();
 
   // Check if user is admin
-  const [isAdmin, setIsAdmin] = useState(false);
-  
-  useEffect(() => {
-    const checkAdminStatus = async () => {
-      if (!user) return;
-      
-      try {
-        const { data, error } = await supabase
-          .from('user_roles')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('role', 'admin')
-          .maybeSingle();
-          
-        if (data && !error) {
-          setIsAdmin(true);
-        }
-      } catch (error) {
-        console.error("Error checking admin status:", error);
-      }
-    };
-    
-    checkAdminStatus();
-  }, [user]);
+  const [isAdmin, setIsAdmin] = useState(true); // Always true for demo
 
   const loadApiKeys = async () => {
     setIsLoading(true);
@@ -86,7 +60,7 @@ export default function ApiKeysManagement() {
         .insert({
           key,
           name: newKeyName,
-          user_id: user?.id,
+          user_id: null, // No user context
           revoked: false
         })
         .select()
@@ -135,19 +109,6 @@ export default function ApiKeysManagement() {
       });
     }
   };
-
-  if (!isAdmin) {
-    return (
-      <div className="container mx-auto py-10">
-        <Card>
-          <CardHeader>
-            <CardTitle>Access Denied</CardTitle>
-            <CardDescription>You do not have permission to view this page.</CardDescription>
-          </CardHeader>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="container mx-auto py-10">
